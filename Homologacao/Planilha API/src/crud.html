@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Planilha API - CRUD</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+    h1 { color: #00796b; }
+    select, input, button { margin: 6px 0; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 18px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #e0f2f1; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .actions button { margin-right: 4px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Planilha API - CRUD</h1>
+  <label>Escolha a aba:
+    <select id="sheetSelect"></select>
+  </label>
+  <button onclick="loadSheet()">Carregar Dados</button>
+  <div id="crudArea"></div>
+</div>
+<script>
+const API_URL = 'SCRIPT_URL_AQUI'; // Substitua pelo URL do seu Apps Script implantado
+
+async function fetchSheets() {
+  const res = await fetch(API_URL + '?action=listSheets');
+  const sheets = await res.json();
+  const select = document.getElementById('sheetSelect');
+  select.innerHTML = '';
+  sheets.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    select.appendChild(opt);
+  });
+}
+
+async function loadSheet() {
+  const sheet = document.getElementById('sheetSelect').value;
+  const res = await fetch(API_URL + '?action=readSheet&sheet=' + encodeURIComponent(sheet));
+  const data = await res.json();
+  renderTable(sheet, data.headers, data.rows);
+}
+
+function renderTable(sheet, headers, rows) {
+  let html = '<table><thead><tr>';
+  headers.forEach(h => html += `<th>${h}</th>`);
+  html += '<th>Ações</th></tr></thead><tbody>';
+  rows.forEach((row, idx) => {
+    html += '<tr>';
+    row.forEach((cell, i) => html += `<td><input value="${cell}" data-col="${i}" data-row="${idx}"></td>`);
+    html += `<td class="actions">
+      <button onclick="updateRow('${sheet}',${idx})">Salvar</button>
+      <button onclick="deleteRow('${sheet}',${idx})">Excluir</button>
+    </td></tr>`;
+  });
+  html += '</tbody></table>';
+  html += '<h3>Adicionar nova linha</h3><div id="addRow">';
+  headers.forEach((h,i) => { html += `<input placeholder="${h}" id="add_${i}">`; });
+  html += `<button onclick="createRow('${sheet}',${headers.length})">Adicionar</button></div>`;
+  document.getElementById('crudArea').innerHTML = html;
+}
+
+async function createRow(sheet, cols) {
+  let row = [];
+  for(let i=0;i<cols;i++) row.push(document.getElementById('add_'+i).value);
+  await fetch(API_URL + '?action=createRow&sheet=' + encodeURIComponent(sheet), {
+    method: 'POST', body: JSON.stringify(row)
+  });
+  loadSheet();
+}
+
+async function updateRow(sheet, idx) {
+  const inputs = document.querySelectorAll(`td input[data-row='${idx}']`);
+  let row = [];
+  inputs.forEach(inp => row.push(inp.value));
+  await fetch(API_URL + `?action=updateRow&sheet=${encodeURIComponent(sheet)}&row=${idx}`, {
+    method: 'POST', body: JSON.stringify(row)
+  });
+  loadSheet();
+}
+
+async function deleteRow(sheet, idx) {
+  await fetch(API_URL + `?action=deleteRow&sheet=${encodeURIComponent(sheet)}&row=${idx}`);
+  loadSheet();
+}
+
+fetchSheets();
+</script>
+</body>
+</html>

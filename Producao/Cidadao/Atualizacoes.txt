@@ -1,0 +1,24 @@
+#1
+Problema: O envio de documentos pelo botão "Enviar Documentos" na consulta de protocolo do módulo Cidadão não funciona. O erro apresentado é "Uncaught TypeError: Failed due to illegal value in property: 0" no console do navegador.
+
+Solução proposta: Foram realizados vários ajustes para que o envio do arquivo fosse feito via formulário real, utilizando o padrão de envio do Apps Script (igual ao submit principal do cidadão), com o método Apps Script recebendo o formulário como parâmetro. O push e deploy foram realizados após cada ajuste.
+
+Resultado: Não funcionou. O erro persiste e o arquivo não é enviado.
+
+Aguardando próximo comando ou nova orientação para correção.
+
+#2
+Problema: Atualização de rotina do módulo Cidadão.
+
+Solução proposta: Execução do comando de push e implantação via terminal.
+
+Resultado: A atualização foi realizada com sucesso. O sistema está pronto para testes.
+
+Por favor, teste o sistema para verificar se está funcionando corretamente.
+
+#3
+Problema: Erro "TypeError: row[0].split is not a function" ao tentar adicionar um novo registro no sistema.
+
+Solução proposta: Adicionada verificação de tipo e tratamento de valores nulos/indefinidos ao processar as CDAs na função findDuplicateCDAs.
+
+Resultado: A correção foi implementada e implantada. Por favor, teste o sistema novamente para verificar se o erro foi resolvido ao adicionar um novo registro.

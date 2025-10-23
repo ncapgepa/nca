@@ -1,0 +1,8 @@
+#1
+Problema: O envio de documentos pelo botão "Enviar Documentos" na consulta de protocolo do módulo Cidadão não funciona. O erro apresentado é "Uncaught TypeError: Failed due to illegal value in property: 0" no console do navegador.
+
+Solução proposta: Foram realizados vários ajustes para que o envio do arquivo fosse feito via formulário real, utilizando o padrão de envio do Apps Script (igual ao submit principal do cidadão), com o método Apps Script recebendo o formulário como parâmetro. O push e deploy foram realizados após cada ajuste.
+
+Resultado: Não funcionou. O erro persiste e o arquivo não é enviado.
+
+Aguardando próximo comando ou nova orientação para correção.

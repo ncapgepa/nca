@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>Consulta de Protocolo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary-color: #004d40;
+      --secondary-color: #e0f2f1;
+      --accent-color: #00796b;
+    }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #e8f5e9;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .container { 
+      max-width: 900px;
+      width: 98vw;
+      margin: 40px auto 0 auto;
+      background: #fff; 
+      padding: 40px 32px 32px 32px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 24px #0001; 
+      border-top: 5px solid var(--primary-color);
+      text-align: center;
+      min-height: 0;
+      display: block;
+    }
+    h1 { 
+      color: var(--primary-color);
+      margin-top: 0;
+    }
+    input { 
+      width: 320px; 
+      max-width: 100%;
+      padding: 12px; 
+      margin-top: 12px; 
+      border-radius: 4px; 
+      border: 1px solid #ccc; 
+      box-sizing: border-box;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    input:focus {
+      border-color: var(--primary-color); 
+      box-shadow: 0 0 0 2px rgba(0, 77, 64, 0.2);
+      outline: none; 
+    }
+    button { 
+      width: 200px;
+      background: var(--primary-color); 
+      color: #fff; 
+      border: none; 
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 1.1em;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    button:hover {
+      background: var(--accent-color);
+    }
+    #resultado { 
+      margin-top:24px;
+      padding: 15px;
+      background: var(--secondary-color);
+      border-radius: 4px;
+      text-align: left;
+      line-height: 1.6;
+      display: none; /* Começa escondido */
+      max-width: 900px;
+      width: 95vw;
+      box-sizing: border-box;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    /* Estilos para o modal */
+    #modalEnviarDoc {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    #modalEnviarDoc > div {
+      background: #fff;
+      max-width: 400px;
+      width: 95vw;
+      padding: 32px 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 24px #0003;
+      position: relative;
+    }
+    #modalEnviarDoc button.close {
+      position: absolute;
+      top: 12px;
+      right: 18px;
+      font-size: 22px;
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+    }
+    #modalEnviarDoc h3 {
+      margin-top: 0;
+      color: #004d40;
+    }
+    #modalEnviarDoc input[type="file"],
+    #modalEnviarDoc input[type="text"] {
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    #modalEnviarDoc button[type="submit"] {
+      width: auto;
+      margin-top: 12px;
+    }
+    #msgEnvioDoc {
+      margin-top: 10px;
+      font-size: 0.98em;
+    }
+  </style>
+  <script>
+      // Altera cor do fundo do body se ambiente for homologação
+      (function() {
+        var isHomolog = false;
+        try {
+          if (typeof APPS_SCRIPT_URL !== 'undefined' && APPS_SCRIPT_URL.includes('AKfycbxvKlMx5dx3aYjiwjk-NrD2ohJkIrpgG34hCdNmNtsoqfSFayuaDEIzT7Bi1hTm25Uclw')) {
+            isHomolog = true;
+          }
+        } catch(e) {}
+        if (isHomolog) {
+          var style = document.createElement('style');
+          style.innerHTML = 'body { background: #fffbe6 !important; }';
+          document.head.appendChild(style);
+        }
+      })();
+    </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta de Protocolo</h1>
+    <input type="text" id="protocolo" placeholder="Digite seu protocolo">
+    <button onclick="consultar()">Consultar</button>
+    <div id="resultado"></div>
+    <button id="btnPdf" style="display:none;margin-top:18px;" onclick="baixarPDFProtocolo()">Baixar Protocolo em PDF</button>
+    <button id="btnEnviarDoc" style="display:none;margin-top:18px;margin-left:12px;" onclick="abrirModalEnviarDoc()">Enviar Documentos</button>
+  </div>
+  <div id="modalEnviarDoc" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;max-width:400px;width:95vw;padding:32px 24px;border-radius:10px;box-shadow:0 4px 24px #0003;position:relative;">
+      <button onclick="fecharModalEnviarDoc()" style="position:absolute;top:12px;right:18px;font-size:22px;background:none;border:none;color:#888;cursor:pointer;">&times;</button>
+      <h3 style="margin-top:0;color:#004d40;">Enviar Documento</h3>
+      <form id="formEnviarDoc" onsubmit="google.script.run.withSuccessHandler(function(resp){
+        var msgDiv = document.getElementById('msgEnvioDoc');
+        if (resp && resp.sucesso) {
+          msgDiv.innerHTML = 'Documento enviado com sucesso!';
+          setTimeout(fecharModalEnviarDoc, 1200);
+        } else {
+          msgDiv.textContent = resp && resp.erro ? resp.erro : 'Erro ao enviar.';
+        }
+      }).withFailureHandler(function(err){
+        var msgDiv = document.getElementById('msgEnvioDoc');
+        msgDiv.textContent = 'Erro ao enviar: ' + (err && err.message ? err.message : err);
+      }).enviarDocumentoProtocoloForm(this); return false;">
+        <input type="hidden" name="protocolo" id="protocoloDocHidden">
+        <input type="file" name="arquivoDoc" id="arquivoDoc" required style="margin-bottom:12px;">
+        <input type="text" name="descricao" id="descDoc" placeholder="Descrição do documento (opcional)" style="margin-bottom:12px;width:100%;">
+        <button type="submit" class="btn">Enviar</button>
+      </form>
+      <div id="msgEnvioDoc" style="margin-top:10px;font-size:0.98em;"></div>
+    </div>
+  </div>
+  <script>
+  function consultar() {
+      var protocolo = document.getElementById('protocolo').value.trim();
+      var resultadoDiv = document.getElementById('resultado');
+      if (!protocolo) {
+        resultadoDiv.style.display = 'block';
+        resultadoDiv.innerHTML = 'Por favor, digite um número de protocolo.';
+        return;
+      }
+  resultadoDiv.style.display = 'block';
+  resultadoDiv.innerHTML = 'Consultando...';
+  setTimeout(function(){ resultadoDiv.scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
+  google.script.run.withSuccessHandler(function(resp) {
+        if (resp && resp.protocolo) {
+          let html = `<div style='background:#f8fafc;padding:18px 18px 8px 18px;border-radius:10px;border:1px solid #cfd8dc;'>`;
+          html += `<h2 style='color:#004d40;margin-top:0;'>Protocolo: ${resp.protocolo}</h2>`;
+          html += `<table style='width:100%;border-collapse:collapse;font-size:1em;'>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;width:180px;'>Data</th><td style='padding:6px 8px;'>${resp.data || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Status</th><td style='padding:6px 8px;'>${resp.status || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Solicitante</th><td style='padding:6px 8px;'>${resp.nome || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Email</th><td style='padding:6px 8px;'>${resp.email || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Telefone</th><td style='padding:6px 8px;'>${resp.telefone || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Requerente</th><td style='padding:6px 8px;'>${resp.tipo || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CDAs</th><td style='padding:6px 8px;'>${resp.cdas || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Titular da Dívida</th><td style='padding:6px 8px;'>${resp.nomeRepresentado || ''}</td></tr>`;
+          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CPF/CNPJ do Titular</th><td style='padding:6px 8px;'>${resp.cpfCnpjRepresentado || ''}</td></tr>`;
+          if (resp.tipoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Representante</th><td style='padding:6px 8px;'>${resp.tipoRepresentante}</td></tr>`;
+          if (resp.tipoDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo Documento do Representante</th><td style='padding:6px 8px;'>${resp.tipoDocumentoRepresentante}</td></tr>`;
+          if (resp.numeroDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Número do Documento do Representante</th><td style='padding:6px 8px;'>${resp.numeroDocumentoRepresentante}</td></tr>`;
+          if (resp.attusSaj) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nº Processo ATTUS/SAJ</th><td style='padding:6px 8px;'>${resp.attusSaj}</td></tr>`;
+          if (resp.dataEncerramento) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Data de Encerramento</th><td style='padding:6px 8px;'>${resp.dataEncerramento}</td></tr>`;
+          html += `</table>`;
+          if (resp.historico) {
+            html += `<div style='margin-top:18px;'><b style='color:#00796b;'>Histórico:</b><br><pre style='background:#f5f5f5;padding:10px 12px;border-radius:6px;max-height:200px;overflow:auto;border:1px solid #e0e0e0;'>${resp.historico}</pre></div>`;
+          }
+          html += `</div>`;
+          resultadoDiv.innerHTML = html;
+          document.getElementById('btnPdf').style.display = 'block';
+          document.getElementById('btnEnviarDoc').style.display = 'inline-block';
+          window.__protocoloAtual = resp.protocolo;
+        } else {
+          resultadoDiv.innerHTML = 'Protocolo não encontrado.';
+          document.getElementById('btnPdf').style.display = 'none';
+          document.getElementById('btnEnviarDoc').style.display = 'none';
+          window.__protocoloAtual = null;
+        }
+      }).consultarProtocolo(protocolo);
+    // Função para baixar o protocolo em PDF gerado pelo backend (modelo institucional)
+    window.baixarPDFProtocolo = function() {
+      var protocolo = window.__protocoloAtual;
+      if (!protocolo) {
+        alert('Consulte um protocolo antes de baixar o PDF.');
+        return;
+      }
+      var btn = document.getElementById('btnPdf');
+      btn.textContent = 'Gerando PDF...';
+      btn.disabled = true;
+      google.script.run.withSuccessHandler(function(pdfData) {
+        btn.textContent = 'Baixar Protocolo em PDF';
+        btn.disabled = false;
+        if (pdfData && pdfData.fileContent) {
+          var link = document.createElement('a');
+          link.href = `data:${pdfData.contentType};base64,${pdfData.fileContent}`;
+          link.download = pdfData.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert('Erro ao gerar PDF.');
+        }
+      }).withFailureHandler(function(err) {
+        btn.textContent = 'Baixar Protocolo em PDF';
+        btn.disabled = false;
+        alert('Erro ao gerar PDF: ' + (err && err.message ? err.message : err));
+      }).gerarProtocoloPdfCidadao(protocolo);
+    }
+
+    // Modal de envio de documentos
+    window.abrirModalEnviarDoc = function() {
+      document.getElementById('modalEnviarDoc').style.display = 'flex';
+      document.getElementById('msgEnvioDoc').textContent = '';
+      document.getElementById('formEnviarDoc').reset();
+      document.getElementById('protocoloDocHidden').value = window.__protocoloAtual;
+    }
+    window.fecharModalEnviarDoc = function() {
+      document.getElementById('modalEnviarDoc').style.display = 'none';
+    }
+    window.enviarDocumentoProtocoloAppScript = function(form) {
+      var msgDiv = document.getElementById('msgEnvioDoc');
+      msgDiv.textContent = 'Enviando...';
+      google.script.run.withSuccessHandler(function(resp) {
+        if (resp && resp.sucesso) {
+          msgDiv.innerHTML = 'Documento enviado com sucesso!';
+          setTimeout(fecharModalEnviarDoc, 1200);
+        } else {
+          msgDiv.textContent = resp && resp.erro ? resp.erro : 'Erro ao enviar.';
+        }
+      }).withFailureHandler(function(err) {
+        msgDiv.textContent = 'Erro ao enviar: ' + (err && err.message ? err.message : err);
+      }).enviarDocumentoProtocoloForm(form);
+    }
+    document.getElementById('formEnviarDoc').onsubmit = function(e) {
+      e.preventDefault();
+      var protocolo = window.__protocoloAtual;
+      var fileInput = document.getElementById('arquivoDoc');
+      var desc = document.getElementById('descDoc').value;
+      var msgDiv = document.getElementById('msgEnvioDoc');
+      if (!fileInput.files.length) {
+        msgDiv.textContent = 'Selecione um arquivo.';
+        return;
+      }
+      var formData = new FormData();
+      formData.append('protocolo', protocolo);
+      formData.append('arquivoDoc', fileInput.files[0]);
+      formData.append('descricao', desc);
+      msgDiv.textContent = 'Enviando...';
+      google.script.run.withSuccessHandler(function(resp) {
+        if (resp && resp.sucesso) {
+          msgDiv.innerHTML = 'Documento enviado com sucesso!';
+          setTimeout(fecharModalEnviarDoc, 1200);
+        } else {
+          msgDiv.textContent = resp && resp.erro ? resp.erro : 'Erro ao enviar.';
+        }
+      }).withFailureHandler(function(err) {
+        msgDiv.textContent = 'Erro ao enviar: ' + (err && err.message ? err.message : err);
+      }).enviarDocumentoProtocoloForm(formData);
+    }
+
+    }
+    // Preenche automaticamente o campo protocolo e faz consulta se vier na URL
+    window.addEventListener('DOMContentLoaded', function() {
+      var urlParams = new URLSearchParams(window.location.search);
+      var protocolo = urlParams.get('protocolo');
+      if (protocolo) {
+        document.getElementById('protocolo').value = protocolo;
+        consultar();
+      }
+    });
+  </script>
+</body>
+</html>

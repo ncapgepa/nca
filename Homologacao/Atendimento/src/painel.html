@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>Painel do Atendente</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary-color: #004d40;
+      --secondary-color: #e0f2f1;
+      --accent-color: #00796b;
+      --table-header-bg: #b2dfdb;
+      --danger-color: #c62828;
+      --danger-hover: #b71c1c;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f1f8e9; margin: 0; padding: 20px;}
+    .container { max-width: 1000px; margin: 20px auto; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1, h2, h3 { color: var(--primary-color); }
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+    th, td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+    th { background: var(--table-header-bg); color: var(--primary-color); font-weight: 600; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    tr:hover { background: var(--secondary-color); }
+    .btn { background: var(--primary-color); color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 14px; }
+    .btn:hover:not(:disabled) { background: var(--accent-color); }
+    .btn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+    #detalhes, #admin-panel { background: #fafafa; border: 1px solid #eee; padding: 20px; border-radius: 5px; border-left: 4px solid var(--accent-color); margin-top: 32px;}
+    select, textarea, input[type="text"], input[type="email"] { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; background-color: #fff; }
+    label { font-weight: 600; color: #444; margin-top: 15px; display: block; }
+    .user-info { text-align: right; color: #555; margin-bottom: 20px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 25px 0; }
+    #filters { margin-top: 20px; padding: 20px; background: #f9f9f9; border-radius: 5px; border: 1px solid #eee; }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+    #results-count { margin: 10px 0; font-weight: 500; }
+    .pagination-container { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; border: 1px solid #eee; }
+    .pagination-info { font-size: 14px; color: #666; }
+    .pagination-controls { display: flex; gap: 10px; align-items: center; }
+    .pagination-controls button { padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .pagination-controls button:hover:not(:disabled) { background: var(--secondary-color); }
+    .pagination-controls button:disabled { background: #f5f5f5; color: #999; cursor: not-allowed; }
+    .pagination-controls .current-page { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+    .page-size-selector { margin-left: 15px; }
+    .page-size-selector select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+    .collapsible-header {
+      cursor: pointer;
+      padding: 10px;
+      background-color: var(--table-header-bg);
+      color: var(--primary-color);
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .collapsible-header:hover {
+      background-color: var(--accent-color);
+      color: #fff;
+    }
+    .collapsible-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .collapsible-header span {
+      font-size: 1.2em;
+      transition: transform 0.3s;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="user-info">
+      <? if (environment === 'homologacao') { ?>
+        <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#ffecb3;color:#b26a00;font-weight:bold;margin-right:10px;letter-spacing:1px;">
+          Ambiente: HOMOLOGAÇÃO
+        </span>
+      <? } else if (environment === 'producao') { ?>
+        <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#c8e6c9;color:#256029;font-weight:bold;margin-right:10px;letter-spacing:1px;">
+          Ambiente: PRODUÇÃO
+        </span>
+      <? } else { ?>
+        <span style="display:inline-block;padding:2px 10px;border-radius:4px;background:#e0e0e0;color:#333;font-weight:bold;margin-right:10px;letter-spacing:1px;">
+          Ambiente: <?= environment.toUpperCase() ?>
+        </span>
+      <? } ?>
+      Logado como: <strong><?!= userName ?></strong> (<?!= userEmail ?> | Função: <?!= userRole ?>)
+      &nbsp;|&nbsp;
+      <a href="https://script.google.com/macros/s/AKfycbyjHfu_JThCljCgGYNOMn38cO4OwBNcBgEiWlQnMMLV29uao5FSsSTXUr-kc1B8ed9j/exec?page=sistema" target="_blank" style="color:#00796b;text-decoration:underline;font-weight:500;">Visão Geral do Sistema</a>
+    </div>
+    <h1>Painel do Atendente</h1>
+    <div id="filters">
+      <h3>Filtrar Solicitações</h3>
+      <div class="filter-grid">
+        <div>
+          <label for="search-input">Pesquisar por Protocolo ou Nome</label>
+          <input type="text" id="search-input" onkeyup="applyFilters()">
+        </div>
+        <div>
+          <label for="status-filter">Filtrar por Status</label>
+          <select id="status-filter" onchange="applyFilters()">
+            <option value="">Todos os Status</option>
+            <option>Novo</option>
+            <option>Em Análise</option>
+            <option>Pendente</option>
+            <option>Deferido</option>
+            <option>Indeferido</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="loading" style="text-align:center;">Carregando solicitações...</div>
+    <div id="main-content" style="display:none;">
+      <p><strong id="results-count"></strong></p>
+      <table id="tabela-solicitacoes">
+        <thead>
+          <tr><th>Protocolo</th><th>Data</th><th>Nome do Titular</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody>
+          <!-- As linhas da tabela serão inseridas aqui pelo JavaScript -->
+        </tbody>
+      </table>
+      
+      <!-- Controles de Paginação -->
+      <div id="pagination-container" class="pagination-container" style="display:none;">
+        <div class="pagination-info">
+          <span id="pagination-info-text">Mostrando 1-20 de 100 resultados</span>
+          <div class="page-size-selector">
+            <label for="page-size-select">Itens por página:</label>
+            <select id="page-size-select" onchange="changePageSize()">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+        <div class="pagination-controls">
+          <button id="first-page-btn" onclick="goToPage(1)" disabled>Primeira</button>
+          <button id="prev-page-btn" onclick="goToPreviousPage()" disabled>Anterior</button>
+          <span id="page-numbers"></span>
+          <button id="next-page-btn" onclick="goToNextPage()">Próxima</button>
+          <button id="last-page-btn" onclick="goToLastPage()">Última</button>
+        </div>
+      </div>
+      <!-- Modal de Detalhes -->
+      <div id="detalhes-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:1000;align-items:center;justify-content:center;">
+        <div id="detalhes" style="background:#fff;max-width:900px;width:95vw;max-height:90vh;overflow:auto;border-radius:10px;box-shadow:0 4px 24px #0003;padding:32px;position:relative;">
+          <button onclick="fecharDetalhes()" style="position:absolute;top:12px;right:18px;font-size:22px;background:none;border:none;color:#888;cursor:pointer;">&times;</button>
+        </div>
+      </div>
+      <? if (userRole === 'admin') { ?>
+        <div id="admin-panel">
+          <div class="collapsible-header" onclick="toggleAdminPanel()">
+            <h2>Gestão de Usuários</h2>
+            <span id="admin-toggle-icon" style="font-size: 1.5em; transform: translateY(-2px);">▶</span>
+          </div>
+          <div id="admin-panel-content" style="display: none; margin-top: 20px;">
+            <table id="user-table">
+              <thead><tr><th>Nome</th><th>Email</th><th>Função</th><th>Ações</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <h3 style="margin-top: 30px;">Adicionar Novo Usuário</h3>
+            <form id="add-user-form">
+              <label for="new-user-name">Nome do Usuário</label>
+              <input type="text" id="new-user-name" required>
+              <label for="new-user-email" style="margin-top: 10px;">Email do Usuário</label>
+              <input type="email" id="new-user-email" required>
+              <label for="new-user-role" style="margin-top: 10px;">Função</label>
+              <select id="new-user-role">
+                <option value="user">Usuário</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <button type="submit" class="btn" style="margin-top: 20px;">Adicionar/Atualizar Usuário</button>
+            </form>
+          </div>
+        </div>
+      <? } ?>
+    </div>
+  </div>
+
+  <footer style="margin-top:40px; text-align:center; color:#888; font-size:13px;">
+    Desenvolvido por <strong>DTIGD</strong> &copy; 2025
+  </footer>
+
+  <script>
+    const LOGGED_IN_USER_NAME = "<?!= userName ?>";
+    const LOGGED_IN_USER_EMAIL = "<?!= userEmail ?>";
+    const LOGGED_IN_USER_ROLE = "<?!= userRole ?>";
+    
+    // Variáveis de paginação
+    let currentPage = 1;
+    let pageSize = 20;
+    let currentData = null;
+    let isLoading = false;
+    
+    function carregarTabela() {
+      loadPage(1);
+    }
+    
+    function loadPage(page, resetFilters = false) {
+      if (isLoading) return;
+      
+      isLoading = true;
+      currentPage = page;
+      
+      const searchTerm = resetFilters ? '' : document.getElementById('search-input').value;
+      const statusFilter = resetFilters ? '' : document.getElementById('status-filter').value;
+      
+      if (resetFilters) {
+        document.getElementById('search-input').value = '';
+        document.getElementById('status-filter').value = '';
+      }
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          currentData = response;
+          renderTable(response.items);
+          renderPagination(response.pagination);
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          document.getElementById('pagination-container').style.display = 'flex';
+          isLoading = false;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Erro ao carregar dados:', error);
+          alert('Erro ao carregar dados: ' + error.message);
+          isLoading = false;
+        })
+        .getRequestsPaginated(page, pageSize, searchTerm, statusFilter, 'data', 'desc');
+    }
+    
+    function renderTable(data) {
+      var tbody = document.querySelector('#tabela-solicitacoes tbody');
+      tbody.innerHTML = '';
+      
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum resultado encontrado.</td></tr>';
+        return;
+      }
+      
+      data.forEach(function(item) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = `<td>${item.protocolo}</td>
+                        <td>${item.data}</td>
+                        <td>${item.nome}</td>
+                        <td>${item.status}</td>
+                        <td><button class="btn" onclick="verDetalhes('${item.protocolo}')">Ver Detalhes</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function renderPagination(pagination) {
+      // Atualizar informações de paginação
+      const infoText = `Mostrando ${pagination.startIndex}-${pagination.endIndex} de ${pagination.totalItems} resultado(s)`;
+      document.getElementById('pagination-info-text').textContent = infoText;
+      document.getElementById('results-count').textContent = `${pagination.totalItems} resultado(s) encontrado(s).`;
+      
+      // Atualizar botões de navegação
+      const firstBtn = document.getElementById('first-page-btn');
+      const prevBtn = document.getElementById('prev-page-btn');
+      const nextBtn = document.getElementById('next-page-btn');
+      const lastBtn = document.getElementById('last-page-btn');
+      
+      firstBtn.disabled = !pagination.hasPreviousPage;
+      prevBtn.disabled = !pagination.hasPreviousPage;
+      nextBtn.disabled = !pagination.hasNextPage;
+      lastBtn.disabled = !pagination.hasNextPage;
+      
+      // Renderizar números das páginas
+      renderPageNumbers(pagination);
+    }
+    
+    function renderPageNumbers(pagination) {
+      const pageNumbersContainer = document.getElementById('page-numbers');
+      pageNumbersContainer.innerHTML = '';
+      
+      const maxVisiblePages = 5;
+      let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
+      
+      // Ajustar se não há páginas suficientes no final
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.onclick = () => goToPage(i);
+        
+        if (i === pagination.currentPage) {
+          pageBtn.className = 'current-page';
+        }
+        
+        pageNumbersContainer.appendChild(pageBtn);
+      }
+    }
+    function verDetalhes(protocolo) {
+      var modal = document.getElementById('detalhes-modal');
+      var detalhesDiv = document.getElementById('detalhes');
+      modal.style.display = 'flex';
+      detalhesDiv.innerHTML = '<div style="text-align:center;padding:30px 0;">Carregando detalhes... <span class="loader" style="display:inline-block;width:18px;height:18px;border:3px solid #00796b;border-top:3px solid #e0f2f1;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;"></span></div>';
+      google.script.run.withSuccessHandler(function(dados) {
+        if (dados.erro) {
+            alert(dados.erro);
+            fecharDetalhes();
+            return;
+        }
+        detalhesDiv.innerHTML = `
+          <form id="edit-form">
+            <h2>Detalhes do Protocolo ${protocolo}</h2>
+            <input type="hidden" id="edit-protocolo" value="${protocolo}">
+            <fieldset style="border:1px solid #b2dfdb; border-radius:6px; margin-bottom:20px; padding:18px;">
+              <legend style="font-weight:bold;color:#00796b;">Dados do Titular da Dívida</legend>
+              <div class="form-grid">
+                <div>
+                  <label>Nome do Titular da Dívida</label>
+                  <input type="text" id="edit-nome-representado" value="${dados.nomeRepresentado || ''}">
+                </div>
+                <div>
+                  <label>CPF/CNPJ do Titular</label>
+                  <input type="text" id="edit-cpf-cnpj-representado" value="${dados.cpfCnpjRepresentado || ''}">
+                </div>
+              </div>
+            </fieldset>
+            <fieldset style="border:1px solid #b2dfdb; border-radius:6px; margin-bottom:20px; padding:18px;">
+              <legend style="font-weight:bold;color:#00796b;">Dados do Representante</legend>
+              <div class="form-grid">
+                <div>
+                  <label for="edit-nome">Nome do Representante</label>
+                  <input type="text" id="edit-nome" value="${dados.nome}">
+                </div>
+                <div>
+                  <label for="edit-email">E-mail</label>
+                  <input type="email" id="edit-email" value="${dados.email}">
+                </div>
+                <div>
+                  <label for="edit-telefone">Telefone</label>
+                  <input type="text" id="edit-telefone" value="${dados.telefone}" oninput="handlePhoneInput(event)" maxlength="15">
+                </div>
+                <div>
+                  <label for="edit-tipo">Tipo de Requerente</label>
+                  <select id="edit-tipo">
+                    <option>Pessoa Física</option><option>Empresário Individual</option><option>Sócio Administrador</option><option>Procurador</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Tipo de Representante</label>
+                  <input type="text" id="edit-tipo-representante" value="${dados.tipoRepresentante || ''}">
+                </div>
+                <div>
+                  <label>Tipo Documento do Representante</label>
+                  <input type="text" id="edit-tipo-doc-representante" value="${dados.tipoDocumentoRepresentante || ''}">
+                </div>
+                <div>
+                  <label>Número do Documento do Representante</label>
+                  <input type="text" id="edit-num-doc-representante" value="${dados.numeroDocumentoRepresentante || ''}">
+                </div>
+              </div>
+            </fieldset>
+            <label for="edit-cdas">CDAs (separadas por vírgula)</label>
+            <textarea id="edit-cdas" rows="3">${dados.cdas}</textarea>
+            <p style="margin-top:15px;"><b>Documentos:</b> <a href="${dados.linkDocumentos}" target="_blank" rel="noopener noreferrer">Abrir Pasta de Documentos</a></p>
+            <hr>
+            <h3>Andamento</h3>
+            <label for="attus-saj"><b>Nº Processo ATTUS/SAJ:</b></label>
+            <input type="text" id="attus-saj" value="${dados.attusSaj || ''}" oninput="maskAttusSaj(this)" maxlength="15" placeholder="2024.01.001921">
+            <br>
+            <label for="novo-status"><b>Novo Status:</b></label>
+            <select id="novo-status">
+                <option>Novo</option><option>Em Análise</option><option>Pendente</option><option>Deferido</option><option>Indeferido</option>
+            </select>
+            <br>
+            <label for="nova-observacao"><b>Adicionar Observação sobre a Alteração:</b> (Obrigatório)</label>
+            <textarea id="nova-observacao" rows="3" placeholder="Ex: Correção de dados do requerente. ou Análise iniciada."></textarea>
+            <div class="button-group">
+              <button type="button" class="btn" onclick="salvarAlteracoes()">Salvar Todas as Alterações</button>
+              <button type="button" class="btn btn-pdf" onclick="exportarPdf('${protocolo}')">Exportar para PDF</button>
+            </div>
+            <div style="text-align:center;margin-top:24px;">
+              <button type="button" class="btn" style="background:#888;color:#fff;padding:12px 32px;font-size:1.1em;border-radius:6px;" onclick="fecharDetalhes()">Fechar</button>
+            </div>
+          </form>
+          <hr>
+          <h3>Histórico</h3>
+          <pre style="background:#eee;padding:10px;border-radius:3px;white-space: pre-wrap; word-wrap: break-word;">${dados.historico || 'Nenhum histórico registado.'}</pre>
+          `;
+
+        document.getElementById('edit-tipo').value = dados.tipo;
+        document.getElementById('novo-status').value = dados.status;
+      }).consultarProtocoloCompleto(protocolo);
+    }
+
+    function fecharDetalhes() {
+      var modal = document.getElementById('detalhes-modal');
+      var detalhesDiv = document.getElementById('detalhes');
+      detalhesDiv.innerHTML = '';
+      modal.style.display = 'none';
+    }
+
+    function exportarPdf(protocolo) {
+      var btn = event.target;
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Gerando PDF...';
+      google.script.run
+        .withSuccessHandler(function(pdfData) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          var link = document.createElement('a');
+          link.href = `data:${pdfData.contentType};base64,${pdfData.fileContent}`;
+          link.download = pdfData.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            alert('Erro ao gerar PDF: ' + err.message);
+        })
+        .generateProtocolPdf(protocolo);
+    }
+    function salvarAlteracoes() {
+      const dataToUpdate = {
+        protocolo: document.getElementById('edit-protocolo').value,
+        nome: document.getElementById('edit-nome').value,
+        email: document.getElementById('edit-email').value,
+        telefone: document.getElementById('edit-telefone').value,
+        tipo: document.getElementById('edit-tipo').value,
+        cdas: document.getElementById('edit-cdas').value,
+        status: document.getElementById('novo-status').value,
+        attusSaj: document.getElementById('attus-saj').value,
+        observacao: document.getElementById('nova-observacao').value
+      };
+      if (!dataToUpdate.observacao) {
+          alert('Por favor, adicione uma observação sobre a alteração. Ex: "Correção de dados" ou "Análise iniciada".');
+          return;
+      }
+      var btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+      google.script.run
+        .withSuccessHandler(function(response) {
+          btn.disabled = false;
+          btn.textContent = 'Salvar Todas as Alterações';
+          alert('Alterações salvas com sucesso!');
+          if (response && response.needsRedirect) {
+            const emailSenderUrl = "<?!= emailSenderUrl ?>";
+            window.open(emailSenderUrl, '_blank', 'width=400,height=200,popup');
+          }
+          fecharDetalhes();
+          carregarTabela(); 
+        })
+        .withFailureHandler(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'Salvar Todas as Alterações';
+            alert('Ocorreu um erro: ' + err.message);
+        })
+        .updateRequestData(dataToUpdate);
+    }
+    function handlePhoneInput(event) {
+      let input = event.target;
+      let value = input.value.replace(/\D/g,'');
+      value = value.replace(/(\d{2})(\d)/,"($1) $2");
+      value = value.replace(/(\d{5})(\d{4,5})/,"$1-$2");
+      input.value = value.substring(0, 15);
+    }
+    function maskAttusSaj(input) {
+      let value = input.value.replace(/\D/g, '');
+      value = value.replace(/^(\d{4})(\d)/, '$1.$2');
+      value = value.replace(/^(\d{4})\.(\d{2})(\d)/, '$1.$2.$3');
+      input.value = value;
+    }
+    function loadUsers() {
+      if (LOGGED_IN_USER_ROLE !== 'admin') return;
+      google.script.run.withSuccessHandler(function(users) {
+        const userTbody = document.querySelector('#user-table tbody');
+        userTbody.innerHTML = '';
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+          let removeButton = `<button class="btn btn-danger" onclick="removeUser('${user.email}')">Remover</button>`;
+          if (user.email.toLowerCase() === LOGGED_IN_USER_EMAIL.toLowerCase()) {
+            removeButton = '';
+          }
+          tr.innerHTML = `<td>${user.nome}</td><td>${user.email}</td><td>${user.role}</td><td>${removeButton}</td>`;
+          userTbody.appendChild(tr);
+        });
+      }).getUsers();
+    }
+    function addOrUpdateUser(nome, email, role) {
+      google.script.run.withSuccessHandler(function(response) {
+        alert(response.message);
+        loadUsers();
+        document.getElementById('add-user-form').reset();
+      }).addOrUpdateUser(nome, email, role);
+    }
+    function removeUser(email) {
+      if (!confirm('Tem certeza que deseja remover o usuário ' + email + '?')) return;
+      google.script.run.withSuccessHandler(function(response) {
+        alert(response.message);
+        loadUsers();
+      }).withFailureHandler(function(err){
+        alert(err.message);
+      }).removeUser(email);
+    }
+    
+    // Funções de navegação da paginação
+    function goToPage(page) {
+      if (page !== currentPage && !isLoading) {
+        loadPage(page);
+      }
+    }
+    
+    function goToPreviousPage() {
+      if (currentPage > 1) {
+        goToPage(currentPage - 1);
+      }
+    }
+    
+    function goToNextPage() {
+      if (currentData && currentData.pagination.hasNextPage) {
+        goToPage(currentPage + 1);
+      }
+    }
+    
+    function goToLastPage() {
+      if (currentData && currentData.pagination.totalPages > currentPage) {
+        goToPage(currentData.pagination.totalPages);
+      }
+    }
+    
+    function changePageSize() {
+      const newPageSize = parseInt(document.getElementById('page-size-select').value);
+      if (newPageSize !== pageSize) {
+        pageSize = newPageSize;
+        loadPage(1); // Voltar para a primeira página com o novo tamanho
+      }
+    }
+    
+    // Debounce para filtros
+    let filterTimeout;
+    function applyFilters() {
+      clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(() => {
+        loadPage(1); // Sempre voltar para a primeira página ao filtrar
+      }, 300); // Aguardar 300ms após a última digitação
+    }
+    function toggleAdminPanel() {
+      const content = document.getElementById('admin-panel-content');
+      const icon = document.getElementById('admin-toggle-icon');
+      if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+    window.onload = function() {
+      carregarTabela();
+      if (LOGGED_IN_USER_ROLE === 'admin') {
+        loadUsers();
+        document.getElementById('add-user-form').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const nome = document.getElementById('new-user-name').value;
+          const email = document.getElementById('new-user-email').value;
+          const role = document.getElementById('new-user-role').value;
+          addOrUpdateUser(nome, email, role);
+        });
+      }
+    };
+  </script>
+</body>
+</html>
