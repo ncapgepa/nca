@@ -1,53 +1,319 @@
-# 🔧 DIAGNÓSTICO ZIMBRA - Troubleshooting Autenticação
+# 🔧 DIAGNÓSTICO ZIMBRA - Guia de Uso
 
 **Data:** 16 de janeiro de 2026  
-**Problema:** Falha na autenticação com Zimbra  
-**Status:** Resolvendo...
+**Arquivo:** `Homologacao/Email/src/Codigo.js`  
+**Função:** `diagnosticoZimbra()`
 
 ---
 
-## ❌ Erro Recebido
+## 🎯 O que é
+
+Uma função que testa automaticamente **todos os aspectos** da conexão com Zimbra:
+
+1. ✅ Propriedades do Script configuradas?
+2. ✅ Servidor Zimbra está respondendo?
+3. ✅ Credenciais estão corretas?
+4. ✅ Permissão de envio OK?
+5. ✅ Sheet está acessível?
+
+**Resultado:** Relatório completo dizendo exatamente o que está errado.
+
+---
+
+## 🚀 Como Usar
+
+### PASSO 1: Abrir Google Apps Script
+
+1. Ir para https://script.google.com
+2. Selecionar projeto "SisNCA Email Homologação"
+3. Clicar em **Abrir Editor** (ou já está aberto)
+
+---
+
+### PASSO 2: Abrir o Console
+
+1. Clicar no menu **Execução → Novo Executar**
+2. Ou usar atalho: **Ctrl + Enter**
+
+Você verá a console de execução abrir.
+
+---
+
+### PASSO 3: Executar Diagnóstico
+
+Na console, copie e execute:
+
+```javascript
+diagnosticoZimbra()
+```
+
+Ou clique no botão ▶️ ao lado de `diagnosticoZimbra` se aparecer no dropdown.
+
+---
+
+### PASSO 4: Ver Resultado
+
+A console mostrará um relatório completo:
 
 ```
-Falha na autenticação com o servidor Zimbra. 
-Verifique as credenciais nas propriedades do script.
+============================================================
+📋 DIAGNÓSTICO ZIMBRA
+============================================================
+{
+  "timestamp": "16/1/2026, 15:30:45",
+  "testes": {
+    "propriedades": {
+      "nome": "✅ Propriedades do Script",
+      "ZIMBRA_URL": "✅ Configurada",
+      "ZIMBRA_USER": "✅ seu@email.com",
+      "ZIMBRA_PASS": "✅ Configurada",
+      "USE_ZIMBRA": "✅ Ativada",
+      "status": "✅ OK"
+    },
+    "conectividade": {
+      "nome": "🌐 Conectividade",
+      "url": "https://mail.pa.gov.br/service/soap",
+      "httpCode": 200,
+      "status": "✅ Servidor respondeu"
+    },
+    "autenticacao": {
+      "nome": "🔐 Autenticação SOAP",
+      "usuario": "seu@email.com",
+      "status": "✅ Autenticado",
+      "token": "✅ Token gerado (ABC123DEF456...)"
+    }
+  },
+  "resumo": "✅ TUDO OK! Sistema pronto para enviar emails via Zimbra"
+}
+============================================================
 ```
 
 ---
 
-## 🔍 PASSO 1: Verificar Credenciais nas Properties
+## 🔍 Interpretando Resultados
 
-Vá para **Projeto → Propriedades do Script** e confirme:
+### Se vir: ✅ TUDO OK!
 
-```
-ZIMBRA_URL  = https://mail.pa.gov.br/service/soap
-ZIMBRA_USER = seu_usuario@pa.gov.br  (⚠️ SEM @pa.gov.br se tiver domínio padrão)
-ZIMBRA_PASS = sua_senha_correta
-USE_ZIMBRA  = true
-```
-
-**⚠️ Pontos críticos:**
-
-1. **Email do usuário:** Deve estar **EXATAMENTE** como aparece no Zimbra
-   - Correto: `joao.silva@pa.gov.br` OU `joao.silva` (depende do servidor)
-   - Incorreto: `joao silva` (espaço em branco)
-   - Incorreto: `JOAO@PA.GOV.BR` (maiúsculas podem não funcionar)
-
-2. **Senha:** Deve estar **EXATAMENTE** correta
-   - Sem espaços antes/depois
-   - Case-sensitive (maiúscula vs minúscula importa)
-   - Sem caracteres especiais estranhos (copiar/colar pode copiar caracteres invisíveis)
-
-3. **URL:** Deve ser a URL SOAP correta do seu servidor
-   - Correto: `https://mail.pa.gov.br/service/soap`
-   - Incorreto: `https://mail.pa.gov.br/` (sem /service/soap)
-   - Incorreto: `http://` (deve ser HTTPS)
+**Significa:** Sistema está funcionando corretamente  
+**Ação:** Adicione um email na fila (Sheets → EmailQueue) e teste envio
 
 ---
 
-## 🧪 PASSO 2: Função de Diagnóstico
+### Se vir: ❌ Propriedades não configuradas
 
-Adicione esta função ao seu `Codigo.js` temporariamente:
+**Problema:** Faltam Script Properties
+
+**Solução:**
+1. Abrir **Projeto → Propriedades do Script**
+2. Adicionar:
+   - `ZIMBRA_URL` = `https://mail.pa.gov.br/service/soap`
+   - `ZIMBRA_USER` = `seu@email.com`
+   - `ZIMBRA_PASS` = `sua_senha`
+   - `USE_ZIMBRA` = `true`
+3. Salvar
+4. Rodar diagnóstico novamente
+
+---
+
+### Se vir: ❌ Falha na autenticação
+
+**Problema:** Usuário ou senha incorretos
+
+**Verificação:**
+1. Abrir webmail do Zimbra: https://mail.pa.gov.br
+2. Tentar fazer login com usuário/senha das propriedades
+3. Se não funciona no webmail, não funcionará no script
+4. Se funciona, propriedades podem estar digitadas errado
+
+**Solução:**
+- Copie e cole a senha das propriedades direto do Zimbra
+- Verifique se há espaços em branco
+- Verifique se está usando email completo (@pa.gov.br)
+- Tente sem @pa.gov.br se só o login de usuário
+- Procure por caracteres invisíveis (paste em editor de texto)
+
+---
+
+### Se vir: ❌ Permissão de envio negada
+
+**Problema:** Usuário não tem permissão para enviar emails
+
+**Solução:**
+1. Contatar administrador Zimbra
+2. Pedir para ativar "Permissão de envio" para o usuário
+3. Verificar se não está com "Quarentena" ativa
+4. Rodar diagnóstico novamente
+
+---
+
+### Se vir: ❌ Sheet não acessível
+
+**Problema:** Não consegue acessar a planilha
+
+**Solução:**
+1. Verificar se `SHEET_ID` está correto
+2. Verificar se `EMAIL_QUEUE_SHEET_NAME` é exatamente igual ao nome da aba
+3. Verificar permissões na planilha
+
+---
+
+## 📊 O que cada teste verifica
+
+### 1️⃣ Propriedades do Script
+```
+Verifica se estão preenchidas:
+- ZIMBRA_URL (URL do servidor)
+- ZIMBRA_USER (seu email)
+- ZIMBRA_PASS (sua senha)
+- USE_ZIMBRA (true para ativar)
+```
+
+### 2️⃣ Conectividade
+```
+Tenta fazer conexão com servidor Zimbra
+- Sem enviar dados (apenas ping)
+- Verifica se porta SOAP está aberta
+- Valida certificado SSL
+```
+
+### 3️⃣ Autenticação
+```
+Tenta fazer login com credenciais
+- Envia SOAP AuthRequest
+- Obtém token de autenticação
+- Valida resposta XML
+```
+
+### 4️⃣ Permissão de Envio
+```
+Tenta criar um email (sem enviar)
+- Verifica se usuário tem permissão
+- Valida estrutura SOAP SendMsgRequest
+- Detecta bloqueios de envio
+```
+
+### 5️⃣ Sheet
+```
+Verifica acesso à planilha
+- Abre Sheet by ID
+- Busca aba EmailQueue
+- Valida estrutura
+```
+
+---
+
+## 💡 Dicas Importantes
+
+### ✅ Rodando diagnóstico pela primeira vez?
+
+1. Configure as propriedades
+2. Rode `diagnosticoZimbra()`
+3. Se tudo OK → Teste com email real
+4. Se erro → Veja interpretação acima
+
+---
+
+### ✅ Testando após mudanças
+
+Sempre rode diagnóstico após:
+- Trocar senha Zimbra
+- Mudar URL do servidor
+- Ativar/desativar USE_ZIMBRA
+- Atualizar Script Properties
+
+---
+
+### ✅ Enviando email de teste
+
+Depois que diagnóstico passar:
+
+1. Abrir **Sheet → Aba EmailQueue**
+2. Adicionar uma linha:
+   ```
+   Timestamp: (deixar vazio)
+   Protocolo: PGE-TEST-001
+   Nome: Seu Nome
+   Email: seu@email.com
+   Status: Novo
+   Observação: Teste de diagnóstico
+   ```
+3. Abrir URL publicada do Apps Script
+4. Verificar se email chegou
+
+---
+
+## 🆘 Ainda não funciona?
+
+### Colete essas informações para suporte:
+
+1. Resultado completo de `diagnosticoZimbra()`
+2. Erro exato da mensagem
+3. Screenshot da console
+4. Confirme que consegue fazer login no https://mail.pa.gov.br
+
+---
+
+## 📝 Exemplo de Saída Completa
+
+### ✅ Funcionando Perfeitamente
+
+```
+✅ Propriedades do Script → OK
+✅ Conectividade → Servidor respondeu (HTTP 200)
+✅ Autenticação SOAP → Token gerado
+✅ Permissão de Envio → Pode enviar
+✅ Google Sheets → Acessível
+
+RESUMO: ✅ TUDO OK! Sistema pronto para enviar emails via Zimbra
+```
+
+### ❌ Com Problemas
+
+```
+✅ Propriedades do Script → OK
+⚠️ Conectividade → Timeout (conexão lenta?)
+❌ Autenticação SOAP → Falha de autenticação
+❌ Permissão de Envio → Não testado (auth falhou)
+✅ Google Sheets → Acessível
+
+RESUMO: ❌ Problemas encontrados:
+1. Verificar se ZIMBRA_USER e ZIMBRA_PASS estão corretos
+2. Testar login em https://mail.pa.gov.br
+3. Verificar conexão de rede
+```
+
+---
+
+## 🎯 Próximos Passos
+
+### Se diagnóstico passar (✅ OK):
+
+1. ✅ Testar com email real na fila
+2. ✅ Verificar se email chega
+3. ✅ Adicionar emails em quantidade (10, 100)
+4. ✅ Monitorar logs de envio
+
+### Se diagnóstico falhar (❌):
+
+1. ❌ Ler a seção "Interpretando Resultados" acima
+2. ❌ Ajustar conforme recomendação
+3. ❌ Rodar diagnóstico novamente
+4. ❌ Se persistir → Contactar suporte
+
+---
+
+## 🔐 Segurança
+
+⚠️ **IMPORTANTE:**
+
+- Não compartilhe saída de diagnóstico com senhas visíveis
+- A função NÃO mostra senha (mostra apenas ✅ Configurada)
+- Logs são registrados apenas no seu Console (privado)
+- Não persiste em nenhum lugar
+
+---
+
+**Status:** ✅ Função de diagnóstico integrada e pronta para usar!
 
 ```javascript
 /**

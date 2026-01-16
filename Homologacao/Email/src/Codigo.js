@@ -73,6 +73,146 @@ function getZimbraAuthToken() {
 }
 
 /**
+ * Diagnóstico completo da conexão Zimbra
+ * Execute esta função no console para testar configuração
+ * @returns {Object} Resultado do diagnóstico com status de cada teste
+ */
+function diagnosticoZimbra() {
+  const resultado = {
+    timestamp: new Date().toLocaleString(),
+    testes: {},
+    resumo: ""
+  };
+  
+  try {
+    // TESTE 1: Verificar propriedades configuradas
+    resultado.testes.propriedades = {
+      nome: "✅ Propriedades do Script",
+      ZIMBRA_URL: ZIMBRA_URL ? "✅ Configurada" : "❌ Não configurada",
+      ZIMBRA_USER: ZIMBRA_USER ? `✅ ${ZIMBRA_USER}` : "❌ Não configurada",
+      ZIMBRA_PASS: ZIMBRA_PASS ? "✅ Configurada (não exibir)" : "❌ Não configurada",
+      USE_ZIMBRA: USE_ZIMBRA ? "✅ Ativada" : "⚠️ Desativada"
+    };
+    
+    if (!ZIMBRA_URL || !ZIMBRA_USER || !ZIMBRA_PASS) {
+      resultado.testes.propriedades.status = "❌ FALHA: Configure todas as propriedades";
+      console.log("❌ FALHA: Propriedades incompletas");
+      return resultado;
+    }
+    resultado.testes.propriedades.status = "✅ OK";
+    
+    // TESTE 2: Conectividade básica
+    console.log("🔍 Teste 1: Verificando conectividade com Zimbra...");
+    const testConn = UrlFetchApp.fetch(ZIMBRA_URL, { 
+      method: 'post',
+      payload: '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"></soap:Envelope>',
+      muteHttpExceptions: true,
+      timeout: 5000
+    });
+    
+    resultado.testes.conectividade = {
+      nome: "🌐 Conectividade",
+      url: ZIMBRA_URL,
+      httpCode: testConn.getResponseCode(),
+      status: testConn.getResponseCode() > 0 ? "✅ Servidor respondeu" : "❌ Sem resposta"
+    };
+    
+    // TESTE 3: Autenticação
+    console.log("🔍 Teste 2: Testando autenticação...");
+    const token = getZimbraAuthToken();
+    resultado.testes.autenticacao = {
+      nome: "🔐 Autenticação SOAP",
+      usuario: ZIMBRA_USER,
+      status: token ? "✅ Autenticado" : "❌ Falha na autenticação",
+      token: token ? `✅ Token gerado (${token.substring(0, 20)}...)` : "❌ Sem token"
+    };
+    
+    if (!token) {
+      resultado.testes.autenticacao.dica = "Verifique usuario/senha nas propriedades do script";
+      console.log("❌ Falha na autenticação");
+      return resultado;
+    }
+    
+    // TESTE 4: Permissão de envio
+    console.log("🔍 Teste 3: Testando permissão de envio...");
+    const testEmail = UrlFetchApp.fetch(ZIMBRA_URL, {
+      method: 'post',
+      contentType: 'application/soap+xml; charset=utf-8',
+      payload: `<?xml version="1.0" encoding="UTF-8"?>
+        <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+          <soap:Header>
+            <context xmlns="urn:zimbra">
+              <authToken>${token}</authToken>
+            </context>
+          </soap:Header>
+          <soap:Body>
+            <SendMsgRequest xmlns="urn:zimbraMail">
+              <m>
+                <e t="t" a="ninguem@example.com" p="Teste"/>
+                <su>Teste de Diagnóstico</su>
+                <mp ct="text/html">
+                  <content><![CDATA[Teste]]></content>
+                </mp>
+              </m>
+            </SendMsgRequest>
+          </soap:Body>
+        </soap:Envelope>`,
+      muteHttpExceptions: true,
+      timeout: 5000
+    });
+    
+    const responseText = testEmail.getContentText();
+    const temErro = responseText.includes('Fault') || responseText.includes('Error');
+    
+    resultado.testes.permissao = {
+      nome: "📧 Permissão de Envio",
+      status: !temErro ? "✅ Permissão OK" : "❌ Permissão negada",
+      detalhes: temErro ? responseText.substring(0, 200) : "Pode enviar emails"
+    };
+    
+    // TESTE 5: Configuração de Sheet
+    console.log("🔍 Teste 4: Verificando Sheet...");
+    try {
+      const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(EMAIL_QUEUE_SHEET_NAME);
+      resultado.testes.sheet = {
+        nome: "📊 Google Sheets",
+        sheetId: SHEET_ID.substring(0, 20) + "...",
+        sheetName: EMAIL_QUEUE_SHEET_NAME,
+        status: "✅ Acessível",
+        linhas: sheet.getLastRow()
+      };
+    } catch (e) {
+      resultado.testes.sheet = {
+        nome: "📊 Google Sheets",
+        status: "❌ Erro: " + e.message
+      };
+    }
+    
+    // Resumo final
+    const todosOk = Object.values(resultado.testes).every(t => 
+      t.status && (t.status.includes("✅") || t.status.includes("⚠️"))
+    );
+    
+    resultado.resumo = todosOk ? 
+      "✅ TUDO OK! Sistema pronto para enviar emails via Zimbra" :
+      "❌ PROBLEMAS ENCONTRADOS: Veja detalhes acima";
+    
+    console.log("\n" + "=".repeat(60));
+    console.log("📋 DIAGNÓSTICO ZIMBRA");
+    console.log("=".repeat(60));
+    console.log(JSON.stringify(resultado, null, 2));
+    console.log("=".repeat(60));
+    
+    return resultado;
+    
+  } catch (error) {
+    resultado.resumo = "❌ ERRO: " + error.message;
+    console.log(resultado.resumo);
+    return resultado;
+  }
+}
+
+/**
  * Envia e-mail via Zimbra SendMsgRequest.
  * @param {string} token - Token de autenticação do Zimbra
  * @param {string} to - Email do destinatário
