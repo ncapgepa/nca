@@ -1,7 +1,7 @@
-const SHEET_ID = '1k0ytrIaumadc4Dfp29i5KSdqG93RR2GXMMwBd96jXdQ'; // O MESMO ID da sua planilha
+const SHEET_ID = '1Cnb-tqz1b5uvaW4rK3rlGjlYW3QJGEaz9sKPXCzEcxY'; // O MESMO ID da sua planilha
 const EMAIL_QUEUE_SHEET_NAME = 'EmailQueue';
 // URL base para consulta de protocolo (ajuste conforme o ambiente)
-const consultaUrlBase = 'https://script.google.com/macros/s/AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg/exec';
+const consultaUrlBase = 'https://script.google.com/macros/s/AKfycbxvkce95ZEE84wqed5ltl1ZgkHyt4CGyPzMiq-zHJfXkHyL01X70xWU0Ot14scMd3sW/exec';
 
 /**
  * Esta é a única função deste projeto. Ela é executada assim que a página é aberta.

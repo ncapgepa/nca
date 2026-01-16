@@ -1,13 +1,13 @@
 // Ambiente do sistema: altere para 'producao' ao publicar em produção
 const ENVIRONMENT = 'producao';
-const SHEET_ID = '1k0ytrIaumadc4Dfp29i5KSdqG93RR2GXMMwBd96jXdQ';
+const SHEET_ID = '1Cnb-tqz1b5uvaW4rK3rlGjlYW3QJGEaz9sKPXCzEcxY';
 const REQUESTS_SHEET_NAME = 'Pedidos Prescrição';
 const ACCESS_SHEET_NAME = 'Acessos';
 
 const EMAIL_QUEUE_SHEET_NAME = 'EmailQueue';
 
 // Defina a URL do emailSenderUrl conforme o ambiente
-const emailSenderUrl = 'https://script.google.com/macros/s/AKfycbzVUDExZbAyLYVQ-8CAbAg3JjKA3cQ1NVv60P3-c9F2HC8Gtvkr4wb1uxjgrf65NZF7/exec';
+const emailSenderUrl = 'https://script.google.com/macros/s/AKfycbyAfKdmWfuiqb6J_5sr5LkD78hGlsZe7mosjP3XbBrr3rbA_p467hMmB76sDnrc7EEhWg/exec';
 
 /**
  * Função principal que serve o painel do atendente.
@@ -72,6 +72,106 @@ function getRequests() {
     nome: row[13],
     status: row[8]
   }));
+}
+
+/**
+ * Retorna pedidos paginados para o painel.
+ * @param {number} page - Número da página (começando em 1)
+ * @param {number} pageSize - Número de itens por página
+ * @param {string} searchTerm - Termo de busca (opcional)
+ * @param {string} statusFilter - Filtro de status (opcional)
+ * @param {string} sortBy - Campo para ordenação (opcional)
+ * @param {string} sortOrder - Ordem de classificação: 'asc' ou 'desc' (opcional)
+ */
+function getRequestsPaginated(page = 1, pageSize = 20, searchTerm = '', statusFilter = '', sortBy = 'data', sortOrder = 'desc') {
+  const accessInfo = checkUserAccess();
+  if (!accessInfo.hasAccess) throw new Error('Acesso não autorizado.');
+  
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(REQUESTS_SHEET_NAME);
+  const data = sheet.getDataRange().getValues();
+  data.shift(); // remove cabeçalho
+  
+  // Mapear dados para objetos
+  let requests = data.map(row => ({
+    protocolo: row[0],
+    data: row[1],
+    dataFormatted: row[1].toLocaleString(),
+    nome: row[13] || row[2], // Usa nome do representado ou do solicitante
+    status: row[8],
+    timestamp: row[1] instanceof Date ? row[1].getTime() : new Date(row[1]).getTime()
+  }));
+  
+  // Aplicar filtros
+  if (searchTerm) {
+    const searchLower = searchTerm.toLowerCase();
+    requests = requests.filter(req => 
+      req.protocolo.toLowerCase().includes(searchLower) || 
+      req.nome.toLowerCase().includes(searchLower)
+    );
+  }
+  
+  if (statusFilter) {
+    requests = requests.filter(req => req.status === statusFilter);
+  }
+  
+  // Ordenação
+  requests.sort((a, b) => {
+    let valueA, valueB;
+    
+    switch (sortBy) {
+      case 'protocolo':
+        valueA = a.protocolo;
+        valueB = b.protocolo;
+        break;
+      case 'nome':
+        valueA = a.nome;
+        valueB = b.nome;
+        break;
+      case 'status':
+        valueA = a.status;
+        valueB = b.status;
+        break;
+      case 'data':
+      default:
+        valueA = a.timestamp;
+        valueB = b.timestamp;
+        break;
+    }
+    
+    if (sortOrder === 'asc') {
+      return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+    } else {
+      return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+    }
+  });
+  
+  // Calcular paginação
+  const totalItems = requests.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  
+  // Obter itens da página atual
+  const pageItems = requests.slice(startIndex, endIndex).map(req => ({
+    protocolo: req.protocolo,
+    data: req.dataFormatted,
+    nome: req.nome,
+    status: req.status
+  }));
+  
+  return {
+    items: pageItems,
+    pagination: {
+      currentPage: page,
+      totalPages: totalPages,
+      totalItems: totalItems,
+      pageSize: pageSize,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+      startIndex: startIndex + 1,
+      endIndex: endIndex
+    }
+  };
 }
 
 /**
