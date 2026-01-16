@@ -3,6 +3,137 @@ const EMAIL_QUEUE_SHEET_NAME = 'EmailQueue';
 // URL base para consulta de protocolo (ajuste conforme o ambiente)
 const consultaUrlBase = 'https://script.google.com/macros/s/AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg/exec';
 
+// ===== CONFIGURAÇÃO ZIMBRA =====
+const ZIMBRA_URL = PropertiesService.getScriptProperties().getProperty('ZIMBRA_URL') || 'https://mail.pa.gov.br/service/soap';
+const ZIMBRA_USER = PropertiesService.getScriptProperties().getProperty('ZIMBRA_USER');
+const ZIMBRA_PASS = PropertiesService.getScriptProperties().getProperty('ZIMBRA_PASS');
+const USE_ZIMBRA = PropertiesService.getScriptProperties().getProperty('USE_ZIMBRA') === 'true';
+
+/**
+ * Autentica no Zimbra e retorna o token.
+ * Funciona com qualquer usuário (padrão ou serviço) + senha.
+ * @returns {string|null} Token de autenticação ou null em caso de falha
+ */
+function getZimbraAuthToken() {
+  // ✅ Funciona com usuário padrão (ex: joao.silva@pa.gov.br) + senha
+  // ✅ Funciona com usuário de serviço (ex: nca-sistema@pa.gov.br) + senha
+  // ✅ Qualquer usuário válido do Zimbra com permissão de envio
+  
+  const soapRequest = `<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+      <soap:Body>
+        <AuthRequest xmlns="urn:zimbraAccount">
+          <account by="name">${ZIMBRA_USER}</account>
+          <password>${ZIMBRA_PASS}</password>
+        </AuthRequest>
+      </soap:Body>
+    </soap:Envelope>`;
+
+  try {
+    const options = {
+      method: 'post',
+      contentType: 'application/soap+xml; charset=utf-8',
+      payload: soapRequest,
+      muteHttpExceptions: true,
+      followRedirects: true
+    };
+
+    const response = UrlFetchApp.fetch(ZIMBRA_URL, options);
+    const responseCode = response.getResponseCode();
+    
+    if (responseCode !== 200) {
+      Logger.log(`❌ Erro na autenticação Zimbra: HTTP ${responseCode}`);
+      Logger.log(`Resposta: ${response.getContentText()}`);
+      return null;
+    }
+
+    const xml = response.getContentText();
+    
+    // Verificar se há erro na resposta
+    if (xml.includes('Fault') || xml.includes('authentication failed')) {
+      Logger.log("❌ Falha de autenticação: Usuário ou senha incorretos");
+      Logger.log(`Resposta: ${xml.substring(0, 200)}...`);
+      return null;
+    }
+    
+    const tokenMatch = xml.match(/<authToken>(.*?)<\/authToken>/);
+    
+    if (tokenMatch && tokenMatch[1]) {
+      Logger.log(`✅ Autenticação Zimbra realizada com sucesso para: ${ZIMBRA_USER}`);
+      return tokenMatch[1];
+    } else {
+      Logger.log("❌ Não foi possível extrair o token da resposta");
+      Logger.log(`XML recebido: ${xml.substring(0, 300)}...`);
+      return null;
+    }
+  } catch (error) {
+    Logger.log(`❌ Erro ao autenticar com Zimbra: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Envia e-mail via Zimbra SendMsgRequest.
+ * @param {string} token - Token de autenticação do Zimbra
+ * @param {string} to - Email do destinatário
+ * @param {string} subject - Assunto do email
+ * @param {string} htmlBody - Corpo do email em HTML
+ * @param {string} displayName - Nome de exibição do remetente
+ * @returns {boolean} True se enviado com sucesso, false caso contrário
+ */
+function sendZimbraEmail(token, to, subject, htmlBody, displayName) {
+  // Escapar caracteres especiais no assunto
+  const escapedSubject = subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  
+  const soapRequest = `<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+      <soap:Header>
+        <context xmlns="urn:zimbra">
+          <authToken>${token}</authToken>
+        </context>
+      </soap:Header>
+      <soap:Body>
+        <SendMsgRequest xmlns="urn:zimbraMail">
+          <m>
+            <e t="t" a="${to}" p="${displayName}"/>
+            <su>${escapedSubject}</su>
+            <mp ct="text/html">
+              <content><![CDATA[${htmlBody}]]></content>
+            </mp>
+          </m>
+        </SendMsgRequest>
+      </soap:Body>
+    </soap:Envelope>`;
+
+  try {
+    const options = {
+      method: 'post',
+      contentType: 'application/soap+xml; charset=utf-8',
+      payload: soapRequest,
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(ZIMBRA_URL, options);
+    const responseCode = response.getResponseCode();
+
+    if (responseCode === 200) {
+      const xml = response.getContentText();
+      if (xml.includes('Fault') || xml.includes('Error')) {
+        Logger.log(`❌ Erro ao enviar e-mail Zimbra para ${to}: ${xml}`);
+        return false;
+      }
+      Logger.log(`✅ Email enviado via Zimbra para ${to}`);
+      return true;
+    } else {
+      Logger.log(`❌ Erro HTTP ${responseCode} ao enviar e-mail Zimbra: ${response.getContentText()}`);
+      return false;
+    }
+  } catch (error) {
+    Logger.log(`❌ Erro ao enviar email via Zimbra: ${error.message}`);
+    return false;
+  }
+}
+
 /**
  * Esta é a única função deste projeto. Ela é executada assim que a página é aberta.
  */
@@ -47,6 +178,17 @@ function doGet(e) {
     output.setTitle('Envio de Emails');
     // Não é possível atualizar dinamicamente do lado do servidor, mas o usuário verá a tela de progresso
 
+    // Obter token Zimbra se configurado
+    let zimbraToken = null;
+    if (USE_ZIMBRA) {
+      zimbraToken = getZimbraAuthToken();
+      if (!zimbraToken) {
+        lock.releaseLock();
+        return HtmlService.createHtmlOutput('<p>❌ Erro crítico: Falha na autenticação com o servidor Zimbra. Verifique as credenciais nas propriedades do script.</p>');
+      }
+      Logger.log("✅ Token Zimbra obtido com sucesso");
+    }
+
     if (data.length > 0 && data[0][0] !== "") {
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
@@ -71,10 +213,25 @@ Procuradoria-Geral do Estado do Pará<br>
 Núcleo de Cobrança Administrativa - NCA
 </p>`;
 
-        // Envia email
-        MailApp.sendEmail({ to: emailContribuinte, subject: assunto, htmlBody: corpo, name: "PGE - Atendimento" });
-        emailsSent++;
-        // Não é possível atualizar o HTML do lado do cliente a cada envio, mas o usuário verá a barra de progresso inicial
+        // Envia email via Zimbra ou Google Mail
+        let enviado = false;
+        if (USE_ZIMBRA && zimbraToken) {
+          enviado = sendZimbraEmail(zimbraToken, emailContribuinte, assunto, corpo, "PGE - Atendimento");
+        } else {
+          // Fallback para Google Mail
+          try {
+            MailApp.sendEmail({ to: emailContribuinte, subject: assunto, htmlBody: corpo, name: "PGE - Atendimento" });
+            Logger.log(`✅ Email enviado via Google Mail para ${emailContribuinte}`);
+            enviado = true;
+          } catch (mailError) {
+            Logger.log(`❌ Erro ao enviar email via Google Mail: ${mailError.message}`);
+            enviado = false;
+          }
+        }
+        
+        if (enviado) {
+          emailsSent++;
+        }
       }
       dataRange.clearContent();
     }
