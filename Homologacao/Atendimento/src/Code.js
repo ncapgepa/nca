@@ -1,12 +1,8 @@
-// Ambiente do sistema: altere para 'producao' ao publicar em produção
 const ENVIRONMENT = 'homologacao';
 const SHEET_ID = '1k0ytrIaumadc4Dfp29i5KSdqG93RR2GXMMwBd96jXdQ';
 const REQUESTS_SHEET_NAME = 'Pedidos Prescrição';
 const ACCESS_SHEET_NAME = 'Acessos';
-
 const EMAIL_QUEUE_SHEET_NAME = 'EmailQueue';
-
-// Defina a URL do emailSenderUrl conforme o ambiente
 const emailSenderUrl = 'https://script.google.com/macros/s/AKfycbzVUDExZbAyLYVQ-8CAbAg3JjKA3cQ1NVv60P3-c9F2HC8Gtvkr4wb1uxjgrf65NZF7/exec';
 
 /**
