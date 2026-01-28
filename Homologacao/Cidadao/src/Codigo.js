@@ -5,9 +5,206 @@ const REQUESTS_SHEET_NAME = 'Pedidos Prescrição';
 const DRIVE_FOLDER_NAME = 'Documentos prescricao (homologacao)';
 const ENVIRONMENT = 'homologacao';
 
+// ==========================================
+// CONFIGURAÇÕES ZIMBRA MAIL
+// ==========================================
+const ZIMBRA_URL = "https://mail.pa.gov.br/service/soap";
+const ZIMBRA_EMAIL = "comunicacaonca@pge.pa.gov.br";
+// Senha armazenada de forma segura em Script Properties
+// Acesse em: Projeto → Configurações do Projeto → Script Properties
+const ZIMBRA_SENHA = PropertiesService.getScriptProperties().getProperty('ZIMBRA_SENHA');
+
+/**
+ * Autentica no Zimbra e retorna o token de autenticação
+ */
+function autenticarZimbra() {
+  try {
+    const xmlPayload = 
+      '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">' +
+        '<soap:Body>' +
+          '<AuthRequest xmlns="urn:zimbraAccount">' +
+            '<account by="name">' + ZIMBRA_EMAIL + '</account>' +
+            '<password>' + ZIMBRA_SENHA + '</password>' +
+          '</AuthRequest>' +
+        '</soap:Body>' +
+      '</soap:Envelope>';
+
+    const options = {
+      'method': 'post',
+      'contentType': 'application/xml',
+      'payload': xmlPayload,
+      'muteHttpExceptions': true
+    };
+
+    const response = UrlFetchApp.fetch(ZIMBRA_URL, options);
+    const responseText = response.getContentText();
+
+    // Extração do token via Regex
+    const match = responseText.match(/<authToken>(.*?)<\/authToken>/);
+    
+    if (match && match[1]) {
+      Logger.log(`✅ Autenticado no Zimbra com sucesso`);
+      return match[1];
+    } else {
+      Logger.log(`❌ Erro ao autenticar no Zimbra: ${responseText}`);
+      return null;
+    }
+  } catch (err) {
+    Logger.log(`❌ Erro na autenticação: ${err.toString()}`);
+    return null;
+  }
+}
+
+/**
+ * Envia email via Zimbra SOAP API
+ */
+function enviarEmailZimbra(token, destinatario, assunto, corpoHtml) {
+  try {
+    // Monta o payload SOAP com suporte a HTML
+    const xmlPayload = 
+      '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">' +
+        '<soap:Header>' +
+          '<context xmlns="urn:zimbra">' +
+            '<authToken>' + token + '</authToken>' +
+          '</context>' +
+        '</soap:Header>' +
+        '<soap:Body>' +
+          '<SendMsgRequest xmlns="urn:zimbraMail">' +
+            '<m>' +
+              '<e t="t" a="' + destinatario + '"/>' +
+              '<su>' + assunto + '</su>' +
+              '<mp ct="text/html">' +
+                '<content>' + escaparXml(corpoHtml) + '</content>' +
+              '</mp>' +
+            '</m>' +
+          '</SendMsgRequest>' +
+        '</soap:Body>' +
+      '</soap:Envelope>';
+
+    const options = {
+      'method': 'post',
+      'contentType': 'application/xml',
+      'payload': xmlPayload,
+      'muteHttpExceptions': true
+    };
+
+    const response = UrlFetchApp.fetch(ZIMBRA_URL, options);
+    const responseCode = response.getResponseCode();
+    
+    if (responseCode == 200) {
+      Logger.log(`✅ Email enviado para: ${destinatario}`);
+      return { sucesso: true, mensagem: null };
+    } else {
+      const errorMsg = response.getContentText();
+      Logger.log(`❌ Erro ao enviar para ${destinatario}: ${errorMsg}`);
+      return { sucesso: false, mensagem: errorMsg };
+    }
+  } catch (err) {
+    return { sucesso: false, mensagem: err.toString() };
+  }
+}
+
+/**
+ * Escapa caracteres especiais para XML
+ */
+function escaparXml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
+ * Envia email de confirmação ao cidadão via Zimbra
+ */
+function sendConfirmationEmail(protocolo, emailDestino, nomeSolicitante) {
+  try {
+    // Autentica no Zimbra
+    const token = autenticarZimbra();
+    
+    if (!token) {
+      Logger.log(`⚠️ Aviso: Falha ao autenticar no Zimbra. Email de confirmação não enviado.`);
+      return;
+    }
+    
+    // Prepara o corpo do email
+    const assunto = `Protocolo de Análise de Prescrição ${protocolo} - Solicitação Confirmada`;
+    const corpoEmail = `
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+      .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; }
+      .header { background-color: #00796b; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+      .header h1 { margin: 0; font-size: 24px; }
+      .content { padding: 20px; background-color: white; }
+      .protocolo-box { background-color: #e0f2f1; padding: 15px; border-left: 4px solid #00796b; margin: 20px 0; border-radius: 4px; }
+      .protocolo-box p { margin: 5px 0; font-size: 14px; }
+      .protocolo-number { font-size: 20px; font-weight: bold; color: #00796b; }
+      .footer { background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 8px 8px; }
+      .button { display: inline-block; padding: 12px 24px; background-color: #00796b; color: white; text-decoration: none; border-radius: 4px; margin: 15px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Análise de Prescrição de Dívida Ativa</h1>
+        <p>Solicitação Registrada com Sucesso</p>
+      </div>
+      
+      <div class="content">
+        <p>Prezado(a) <strong>${nomeSolicitante}</strong>,</p>
+        
+        <p>Sua solicitação de análise de prescrição de dívida ativa foi registrada com sucesso em nosso sistema.</p>
+        
+        <div class="protocolo-box">
+          <p><strong>Número do Protocolo:</strong></p>
+          <p class="protocolo-number">${protocolo}</p>
+          <p><strong>Guarde este número!</strong> Você precisará dele para acompanhar sua solicitação.</p>
+        </div>
+        
+        <h3>Próximos Passos:</h3>
+        <ul>
+          <li>Sua solicitação está sendo analisada pelos nossos técnicos</li>
+          <li>Você receberá atualizações por email conforme o andamento</li>
+          <li>Pode consultar o status a qualquer momento usando seu protocolo</li>
+        </ul>
+        
+        <p><a href="${APPS_SCRIPT_URL}?page=consulta" class="button">Consultar Meu Protocolo</a></p>
+        
+        <p><strong>Informações de Contato:</strong><br>
+        Para dúvidas sobre sua solicitação, entre em contato conosco através do email ou telefone registrado.</p>
+      </div>
+      
+      <div class="footer">
+        <p>Este é um email automático. Por favor, não responda.</p>
+        <p>Procuradoria-Geral do Estado do Pará - Núcleo de Cobrança Administrativa (NCA)</p>
+        <p>© ${new Date().getFullYear()} - Todos os direitos reservados</p>
+      </div>
+    </div>
+  </body>
+</html>`;
+
+    // Envia o email
+    const resultado = enviarEmailZimbra(token, emailDestino, assunto, corpoEmail);
+    
+    if (resultado.sucesso) {
+      Logger.log(`✅ Email de confirmação enviado para: ${emailDestino}`);
+    } else {
+      Logger.log(`⚠️ Aviso: Erro ao enviar email de confirmação para ${emailDestino}: ${resultado.mensagem}`);
+    }
+  } catch (err) {
+    Logger.log(`⚠️ Aviso: Erro ao enviar email de confirmação: ${err.toString()}`);
+  }
+}
+
 /**
  * Gera o PDF do protocolo no mesmo modelo do painel do Atendente.
- * Retorna { fileName, contentType, fileContent (base64) }
+ * Retorna um objeto com fileName, contentType, fileContent em base64
  */
 function gerarProtocoloPdfCidadao(protocolo) {
   const dados = consultarProtocolo(protocolo);
@@ -199,11 +396,13 @@ function findDuplicateCDAs(sheet, cdasToCheck) {
   // Cria um mapa de CDAs existentes para o seu status
   const existingCDAs = new Map();
   data.forEach(row => {
-    const cdasInSheet = row[0].split(',').map(cda => cda.trim());
+    // Garante que row[0] é uma string antes de fazer split
+    const cdasString = row[0] ? String(row[0]).trim() : '';
+    const cdasInSheet = cdasString ? cdasString.split(',').map(cda => cda.trim()) : [];
     const status = row[statusColumnIndex - cdaColumnIndex]; // Índice relativo ao range lido
     
     // Considera apenas pedidos que não foram indeferidos.
-    if (status.toLowerCase() !== 'indeferido') {
+    if (status && String(status).toLowerCase() !== 'indeferido') {
       cdasInSheet.forEach(cda => {
         if (cda) existingCDAs.set(cda, status);
       });
