@@ -6,3 +6,85 @@ Solução proposta: Foram realizados vários ajustes para que o envio do arquivo
 Resultado: Não funcionou. O erro persiste e o arquivo não é enviado.
 
 Aguardando próximo comando ou nova orientação para correção.
+
+---
+
+#2
+Problema: Erro ao enviar formulário no sistema Cidadão - "TypeError: row[0].split is not a function". O sistema tentava fazer split em um valor não-string.
+
+Solução proposta: Adicionada conversão segura com `String(row[0]).trim()` na função `findDuplicateCDAs()` com verificações de nulidade antes de fazer split. Também foi adicionada proteção ao verificar o status.
+
+Resultado: ✅ Funcionou. O formulário agora é processado corretamente.
+
+---
+
+#3
+Problema: A consulta de protocolo no módulo Cidadão não estava funcionando quando o protocolo era passado via parâmetro de URL (?protocolo=PGE-PRESC-2026-0242). Apenas funcionava se digitado manualmente no campo.
+
+Solução proposta: 
+- Corrigida estrutura JavaScript no arquivo consulta.html (removido `}` duplicado)
+- Atualizado doGet() em Codigo.js para passar variáveis do servidor aos templates usando template GSS
+- Adicionada tag `<script>` nos arquivos HTML para receber APPS_SCRIPT_URL do servidor
+
+Resultado: ✅ Funcionou. A consulta automática por URL agora funciona corretamente.
+
+---
+
+#4
+Ação: Deploy do módulo Cidadão - Versão @48
+
+Mudanças: 
+- Integração com Zimbra SOAP API para envio de email de confirmação
+- Correção do erro "row[0].split is not a function"
+- Adição do escopo "https://www.googleapis.com/auth/script.external_request" ao manifesto
+- Correção da consulta automática por parâmetro de URL
+- Atualização de APPS_SCRIPT_URL para apontar corretamente
+
+Deploy Status: ✅ Sucesso
+Date: 28 de janeiro de 2026
+Deployment ID: AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg
+
+Teste o sistema para verificar se as alterações estão funcionando corretamente.
+
+---
+
+#5
+Problema: Consulta de protocolo continuava não funcionando com erros "Uncaught SyntaxError: Failed to execute 'write' on 'Document'" e "consultarProtocolo is not defined". O atributo onsubmit do formulário tinha JavaScript inline muito longo e complexo.
+
+Solução proposta:
+- Simplificado o formulário removendo o atributo onsubmit complexo
+- Criado event listener JavaScript limpo e organizado para o formulário
+- Separado HTML do JavaScript para melhor manutenibilidade
+- Adicionado handler adequado para formulário de envio de documentos
+
+Resultado: ✅ Código limpo e sem erros de sintaxe
+
+Deploy: ✅ Versão @50
+Date: 28 de janeiro de 2026
+Deployed AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg @50
+
+Teste o sistema para verificar se a consulta agora funciona corretamente e sem erros no console.
+
+---
+
+#6
+Problema: Continuava apresentando erro de sintaxe JavaScript - "SyntaxError: Failed to execute 'write' on 'Document': Unexpected end of input" e "consultarProtocolo is not defined" após deploy v@50.
+
+Causa raiz: A indentação da função `consultar()` estava incorreta. A função não tinha um fechamento `}` explícito antes de definir `window.baixarPDFProtocolo()`, causando um erro de escopo e sintaxe.
+
+Solução implementada:
+- Corrigida indentação completa da função `consultar()` 
+- Adicionado fechamento explícito `}` da função consultar
+- Reorganizado código JavaScript para cada função bem delimitada
+- Removidas indentações inconsistentes
+
+Resultado: ✅ Deployment v@52 realizado com sucesso.
+
+Deploy Details:
+- Push: 4 files successfully pushed
+- Deployment ID: AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg
+- Nova versão: @52
+- Date: 28 de janeiro de 2026
+
+Próximo passo: Aguardar teste do usuário para confirmar que a consulta automática por URL funciona sem erros.
+

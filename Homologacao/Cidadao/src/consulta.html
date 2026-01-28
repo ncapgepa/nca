@@ -5,6 +5,10 @@
   <title>Consulta de Protocolo</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Variáveis do servidor -->
+  <script>
+    const APPS_SCRIPT_URL = '<?= APPS_SCRIPT_URL ?>';
+  </script>
   <style>
     :root {
       --primary-color: #004d40;
@@ -166,18 +170,7 @@
     <div style="background:#fff;max-width:400px;width:95vw;padding:32px 24px;border-radius:10px;box-shadow:0 4px 24px #0003;position:relative;">
       <button onclick="fecharModalEnviarDoc()" style="position:absolute;top:12px;right:18px;font-size:22px;background:none;border:none;color:#888;cursor:pointer;">&times;</button>
       <h3 style="margin-top:0;color:#004d40;">Enviar Documento</h3>
-      <form id="formEnviarDoc" onsubmit="google.script.run.withSuccessHandler(function(resp){
-        var msgDiv = document.getElementById('msgEnvioDoc');
-        if (resp && resp.sucesso) {
-          msgDiv.innerHTML = 'Documento enviado com sucesso!';
-          setTimeout(fecharModalEnviarDoc, 1200);
-        } else {
-          msgDiv.textContent = resp && resp.erro ? resp.erro : 'Erro ao enviar.';
-        }
-      }).withFailureHandler(function(err){
-        var msgDiv = document.getElementById('msgEnvioDoc');
-        msgDiv.textContent = 'Erro ao enviar: ' + (err && err.message ? err.message : err);
-      }).enviarDocumentoProtocoloForm(this); return false;">
+      <form id="formEnviarDoc">
         <input type="hidden" name="protocolo" id="protocoloDocHidden">
         <input type="file" name="arquivoDoc" id="arquivoDoc" required style="margin-bottom:12px;">
         <input type="text" name="descricao" id="descDoc" placeholder="Descrição do documento (opcional)" style="margin-bottom:12px;width:100%;">
@@ -188,52 +181,56 @@
   </div>
   <script>
   function consultar() {
-      var protocolo = document.getElementById('protocolo').value.trim();
-      var resultadoDiv = document.getElementById('resultado');
-      if (!protocolo) {
-        resultadoDiv.style.display = 'block';
-        resultadoDiv.innerHTML = 'Por favor, digite um número de protocolo.';
-        return;
-      }
-  resultadoDiv.style.display = 'block';
-  resultadoDiv.innerHTML = 'Consultando...';
-  setTimeout(function(){ resultadoDiv.scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
-  google.script.run.withSuccessHandler(function(resp) {
-        if (resp && resp.protocolo) {
-          let html = `<div style='background:#f8fafc;padding:18px 18px 8px 18px;border-radius:10px;border:1px solid #cfd8dc;'>`;
-          html += `<h2 style='color:#004d40;margin-top:0;'>Protocolo: ${resp.protocolo}</h2>`;
-          html += `<table style='width:100%;border-collapse:collapse;font-size:1em;'>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;width:180px;'>Data</th><td style='padding:6px 8px;'>${resp.data || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Status</th><td style='padding:6px 8px;'>${resp.status || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Solicitante</th><td style='padding:6px 8px;'>${resp.nome || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Email</th><td style='padding:6px 8px;'>${resp.email || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Telefone</th><td style='padding:6px 8px;'>${resp.telefone || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Requerente</th><td style='padding:6px 8px;'>${resp.tipo || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CDAs</th><td style='padding:6px 8px;'>${resp.cdas || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Titular da Dívida</th><td style='padding:6px 8px;'>${resp.nomeRepresentado || ''}</td></tr>`;
-          html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CPF/CNPJ do Titular</th><td style='padding:6px 8px;'>${resp.cpfCnpjRepresentado || ''}</td></tr>`;
-          if (resp.tipoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Representante</th><td style='padding:6px 8px;'>${resp.tipoRepresentante}</td></tr>`;
-          if (resp.tipoDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo Documento do Representante</th><td style='padding:6px 8px;'>${resp.tipoDocumentoRepresentante}</td></tr>`;
-          if (resp.numeroDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Número do Documento do Representante</th><td style='padding:6px 8px;'>${resp.numeroDocumentoRepresentante}</td></tr>`;
-          if (resp.attusSaj) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nº Processo ATTUS/SAJ</th><td style='padding:6px 8px;'>${resp.attusSaj}</td></tr>`;
-          if (resp.dataEncerramento) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Data de Encerramento</th><td style='padding:6px 8px;'>${resp.dataEncerramento}</td></tr>`;
-          html += `</table>`;
-          if (resp.historico) {
-            html += `<div style='margin-top:18px;'><b style='color:#00796b;'>Histórico:</b><br><pre style='background:#f5f5f5;padding:10px 12px;border-radius:6px;max-height:200px;overflow:auto;border:1px solid #e0e0e0;'>${resp.historico}</pre></div>`;
-          }
-          html += `</div>`;
-          resultadoDiv.innerHTML = html;
-          document.getElementById('btnPdf').style.display = 'block';
-          document.getElementById('btnEnviarDoc').style.display = 'inline-block';
-          window.__protocoloAtual = resp.protocolo;
-        } else {
-          resultadoDiv.innerHTML = 'Protocolo não encontrado.';
-          document.getElementById('btnPdf').style.display = 'none';
-          document.getElementById('btnEnviarDoc').style.display = 'none';
-          window.__protocoloAtual = null;
+    var protocolo = document.getElementById('protocolo').value.trim();
+    var resultadoDiv = document.getElementById('resultado');
+    if (!protocolo) {
+      resultadoDiv.style.display = 'block';
+      resultadoDiv.innerHTML = 'Por favor, digite um número de protocolo.';
+      return;
+    }
+    resultadoDiv.style.display = 'block';
+    resultadoDiv.innerHTML = 'Consultando...';
+    setTimeout(function() { 
+      resultadoDiv.scrollIntoView({behavior:'smooth', block:'start'}); 
+    }, 100);
+    google.script.run.withSuccessHandler(function(resp) {
+      if (resp && resp.protocolo) {
+        let html = `<div style='background:#f8fafc;padding:18px 18px 8px 18px;border-radius:10px;border:1px solid #cfd8dc;'>`;
+        html += `<h2 style='color:#004d40;margin-top:0;'>Protocolo: ${resp.protocolo}</h2>`;
+        html += `<table style='width:100%;border-collapse:collapse;font-size:1em;'>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;width:180px;'>Data</th><td style='padding:6px 8px;'>${resp.data || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Status</th><td style='padding:6px 8px;'>${resp.status || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Solicitante</th><td style='padding:6px 8px;'>${resp.nome || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Email</th><td style='padding:6px 8px;'>${resp.email || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Telefone</th><td style='padding:6px 8px;'>${resp.telefone || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Requerente</th><td style='padding:6px 8px;'>${resp.tipo || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CDAs</th><td style='padding:6px 8px;'>${resp.cdas || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nome do Titular da Dívida</th><td style='padding:6px 8px;'>${resp.nomeRepresentado || ''}</td></tr>`;
+        html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>CPF/CNPJ do Titular</th><td style='padding:6px 8px;'>${resp.cpfCnpjRepresentado || ''}</td></tr>`;
+        if (resp.tipoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo de Representante</th><td style='padding:6px 8px;'>${resp.tipoRepresentante}</td></tr>`;
+        if (resp.tipoDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Tipo Documento do Representante</th><td style='padding:6px 8px;'>${resp.tipoDocumentoRepresentante}</td></tr>`;
+        if (resp.numeroDocumentoRepresentante) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Número do Documento do Representante</th><td style='padding:6px 8px;'>${resp.numeroDocumentoRepresentante}</td></tr>`;
+        if (resp.attusSaj) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Nº Processo ATTUS/SAJ</th><td style='padding:6px 8px;'>${resp.attusSaj}</td></tr>`;
+        if (resp.dataEncerramento) html += `<tr><th style='text-align:left;padding:6px 8px;color:#00796b;'>Data de Encerramento</th><td style='padding:6px 8px;'>${resp.dataEncerramento}</td></tr>`;
+        html += `</table>`;
+        if (resp.historico) {
+          html += `<div style='margin-top:18px;'><b style='color:#00796b;'>Histórico:</b><br><pre style='background:#f5f5f5;padding:10px 12px;border-radius:6px;max-height:200px;overflow:auto;border:1px solid #e0e0e0;'>${resp.historico}</pre></div>`;
         }
-      }).consultarProtocolo(protocolo);
-    // Função para baixar o protocolo em PDF gerado pelo backend (modelo institucional)
+        html += `</div>`;
+        resultadoDiv.innerHTML = html;
+        document.getElementById('btnPdf').style.display = 'block';
+        document.getElementById('btnEnviarDoc').style.display = 'inline-block';
+        window.__protocoloAtual = resp.protocolo;
+      } else {
+        resultadoDiv.innerHTML = 'Protocolo não encontrado.';
+        document.getElementById('btnPdf').style.display = 'none';
+        document.getElementById('btnEnviarDoc').style.display = 'none';
+        window.__protocoloAtual = null;
+      }
+    }).consultarProtocolo(protocolo);
+  }
+
+  // Função para baixar o protocolo em PDF gerado pelo backend (modelo institucional)
     window.baixarPDFProtocolo = function() {
       var protocolo = window.__protocoloAtual;
       if (!protocolo) {
@@ -314,7 +311,41 @@
       }).enviarDocumentoProtocoloForm(formData);
     }
 
-    }
+    // Handler para formulário de envio de documento
+    document.getElementById('formEnviarDoc').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var protocolo = window.__protocoloAtual;
+      var fileInput = document.getElementById('arquivoDoc');
+      var desc = document.getElementById('descDoc').value;
+      var msgDiv = document.getElementById('msgEnvioDoc');
+      
+      if (!fileInput.files.length) {
+        msgDiv.textContent = 'Selecione um arquivo.';
+        return;
+      }
+      
+      msgDiv.textContent = 'Enviando...';
+      var formObj = {
+        protocolo: protocolo,
+        arquivoDoc: fileInput.files[0],
+        descricao: desc
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          if (resp && resp.sucesso) {
+            msgDiv.innerHTML = 'Documento enviado com sucesso!';
+            setTimeout(fecharModalEnviarDoc, 1200);
+          } else {
+            msgDiv.textContent = resp && resp.erro ? resp.erro : 'Erro ao enviar.';
+          }
+        })
+        .withFailureHandler(function(err) {
+          msgDiv.textContent = 'Erro ao enviar: ' + (err && err.message ? err.message : err);
+        })
+        .enviarDocumentoProtocoloForm(formObj);
+    });
+
     // Preenche automaticamente o campo protocolo e faz consulta se vier na URL
     window.addEventListener('DOMContentLoaded', function() {
       var urlParams = new URLSearchParams(window.location.search);

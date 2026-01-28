@@ -1,5 +1,5 @@
 // URL do Apps Script de homologação (troque para a URL de produção ao migrar)
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvKlMx5dx3aYjiwjk-NrD2ohJkIrpgG34hCdNmNtsoqfSFayuaDEIzT7Bi1hTm25Uclw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg/exec';
 const SHEET_ID = '1k0ytrIaumadc4Dfp29i5KSdqG93RR2GXMMwBd96jXdQ'; 
 const REQUESTS_SHEET_NAME = 'Pedidos Prescrição';
 const DRIVE_FOLDER_NAME = 'Documentos prescricao (homologacao)';
@@ -272,10 +272,14 @@ function doGet(e) {
   var page = e.parameter && e.parameter.page ? e.parameter.page : 'cidadao';
   
   if (page === 'consulta') {
-    return HtmlService.createTemplateFromFile('consulta').evaluate().setTitle('Consulta de Protocolo');
+    var template = HtmlService.createTemplateFromFile('consulta');
+    template.APPS_SCRIPT_URL = APPS_SCRIPT_URL;
+    return template.evaluate().setTitle('Consulta de Protocolo');
   } else {
     // A página padrão é a do cidadão
-    return HtmlService.createTemplateFromFile('cidadao').evaluate().setTitle('Análise de Prescrição de Dívida Ativa');
+    var template = HtmlService.createTemplateFromFile('cidadao');
+    template.APPS_SCRIPT_URL = APPS_SCRIPT_URL;
+    return template.evaluate().setTitle('Análise de Prescrição de Dívida Ativa');
   }
 }
 
