@@ -2,28 +2,23 @@
 # Execute no PowerShell
 
 # Deploy Homologação - Atendimento
-cd Homologacao/Atendimento/src
+cd Homologacao/Atendimento
 clasp push
-clasp deploy --deploymentId "<ID_HOMOLOGACAO_ATENDIMENTO>" --description "Deploy Homologação Atendimento"
-cd ../../..
+clasp deploy --deploymentId "AKfycbyjHfu_JThCljCgGYNOMn38cO4OwBNcBgEiWlQnMMLV29uao5FSsSTXUr-kc1B8ed9j" --description "Deploy Homologação Atendimento"
+cd ../..
 
 # Deploy Homologação - Cidadao
-cd Homologacao/Cidadao/src
+cd Homologacao/Cidadao
 clasp push
-clasp deploy --deploymentId "<ID_HOMOLOGACAO_CIDADAO>" --description "Deploy Homologação Cidadao"
-cd ../../..
+clasp deploy --deploymentId "AKfycbzUiUkAP9XQ3gCo0vOHswNt78jV-SJpx_RulNzgDh6G680XTx8VEA52VA_CdyDd86erGg" --description "Deploy Homologação Cidadao"
+cd ../..
 
 # Deploy Homologação - Email
-cd Homologacao/Email/src
+cd Homologacao/Email
 clasp push
-clasp deploy --deploymentId "<ID_HOMOLOGACAO_EMAIL>" --description "Deploy Homologação Email"
-cd ../../..
+clasp deploy --deploymentId "AKfycbzVUDExZbAyLYVQ-8CAbAg3JjKA3cQ1NVv60P3-c9F2HC8Gtvkr4wb1uxjgrf65NZF7" --description "Deploy Homologação Email"
+cd ../..
 
-# Deploy Homologação - Planilha API
-cd Homologacao/Planilha API/src
-clasp push
-clasp deploy --deploymentId "<ID_HOMOLOGACAO_PLANILHA_API>" --description "Deploy Homologação Planilha API"
-cd ../../..
 
 # Aguarde validação manual dos testes na Homologação
 Read-Host "Teste o sistema na Homologação. Pressione Enter para continuar o deploy para Produção..."
@@ -32,30 +27,24 @@ Read-Host "Teste o sistema na Homologação. Pressione Enter para continuar o de
 Copy-Item -Path "Homologacao/Atendimento/src/*" -Destination "Producao/Atendimento/src/" -Exclude "appsscript.json",".clasp.json" -Force
 Copy-Item -Path "Homologacao/Cidadao/src/*" -Destination "Producao/Cidadao/src/" -Exclude "appsscript.json",".clasp.json" -Force
 Copy-Item -Path "Homologacao/Email/src/*" -Destination "Producao/Email/src/" -Exclude "appsscript.json",".clasp.json" -Force
-Copy-Item -Path "Homologacao/Planilha API/src/*" -Destination "Producao/Planilha API/src/" -Exclude "appsscript.json",".clasp.json" -Force
 
 # Deploy Produção - Atendimento
-cd Producao/Atendimento/src
+cd Producao/Atendimento
 clasp push
-clasp deploy --deploymentId "<ID_PRODUCAO_ATENDIMENTO>" --description "Deploy Produção Atendimento"
-cd ../../..
+clasp deploy --deploymentId "AKfycbyjHfu_JThCljCgGYNOMn38cO4OwBNcBgEiWlQnMMLV29uao5FSsSTXUr-kc1B8ed9j" --description "Deploy Produção Atendimento"
+cd ../..
 
 # Deploy Produção - Cidadao
-cd Producao/Cidadao/src
+cd Producao/Cidadao
 clasp push
-clasp deploy --deploymentId "<ID_PRODUCAO_CIDADAO>" --description "Deploy Produção Cidadao"
-cd ../../..
+clasp deploy --deploymentId "AKfycbxvkce95ZEE84wqed5ltl1ZgkHyt4CGyPzMiq-zHJfXkHyL01X70xWU0Ot14scMd3sW" --description "Deploy Produção Cidadao"
+cd ../..
 
 # Deploy Produção - Email
-cd Producao/Email/src
+cd Producao/Email
 clasp push
-clasp deploy --deploymentId "<ID_PRODUCAO_EMAIL>" --description "Deploy Produção Email"
-cd ../../..
+clasp deploy --deploymentId "AKfycbzVUDExZbAyLYVQ-8CAbAg3JjKA3cQ1NVv60P3-c9F2HC8Gtvkr4wb1uxjgrf65NZF7" --description "Deploy Produção Email"
+cd ../..
 
-# Deploy Produção - Planilha API
-cd Producao/Planilha API/src
-clasp push
-clasp deploy --deploymentId "<ID_PRODUCAO_PLANILHA_API>" --description "Deploy Produção Planilha API"
-cd ../../..
 
 Write-Host "Deploy finalizado!"
