@@ -427,30 +427,6 @@ function findDuplicateCDAs(sheet, cdasToCheck) {
   return { isDuplicate: false };
 }
 
-/**
- * Envia email de confirmação para o cidadão.
- */
-function sendConfirmationEmail(protocolo, destinatario, nome) {
-  const assunto = `Confirmação de Recebimento - Protocolo ${protocolo}`;
-  // Usa a constante global para montar a URL de consulta
-  const consultaUrl = `${APPS_SCRIPT_URL}?page=consulta&protocolo=${encodeURIComponent(protocolo)}`;
-  const corpo = `
-    <p>Prezado(a) ${nome},</p>
-    <p>A sua solicitação de Análise de Prescrição de Dívida Ativa foi recebida com sucesso.</p>
-    <p>O seu número de protocolo é: <strong>${protocolo}</strong></p>
-    <p>Guarde este número para futuras consultas sobre o andamento do seu pedido.</p>
-    <p>
-      <a href="${consultaUrl}" style="display:inline-block;padding:12px 24px;background:#004d40;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">Consultar andamento do pedido</a>
-    </p>
-    <p style="color:#888;font-size:0.95em;">Por favor, não responda a este e-mail. Esta caixa não é monitorada.</p>
-    <p>Atenciosamente,<br>Procuradoria-Geral do Estado do Pará</p>
-  `;
-  try {
-    MailApp.sendEmail({ to: destinatario, subject: assunto, htmlBody: corpo });
-  } catch (e) {
-    Logger.log(`Falha ao enviar email para ${destinatario}. Erro: ${e.message}`);
-  }
-}
 
 /**
  * Encontra ou cria a pasta no Google Drive.
