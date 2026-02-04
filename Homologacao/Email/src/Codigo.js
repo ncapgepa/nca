@@ -152,6 +152,7 @@ function autenticarZimbra() {
 function enviarEmailZimbra(token, destinatario, assunto, corpoTexto, corpoHtml) {
   try {
     // Monta o payload SOAP com suporte a HTML
+    // O campo <f> especifica o remetente com nome exibido
     const xmlPayload = 
       '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">' +
         '<soap:Header>' +
@@ -162,7 +163,7 @@ function enviarEmailZimbra(token, destinatario, assunto, corpoTexto, corpoHtml) 
         '<soap:Body>' +
           '<SendMsgRequest xmlns="urn:zimbraMail">' +
             '<m>' +
-              '<f>' + ZIMBRA_EMAIL + '</f>' +
+              '<f d="Núcleo de Cobrança Administrativa">' + ZIMBRA_EMAIL + '</f>' +
               '<e t="t" a="' + destinatario + '"/>' +
               '<su>' + assunto + '</su>' +
               '<mp ct="text/html">' +
