@@ -162,6 +162,7 @@ function enviarEmailZimbra(token, destinatario, assunto, corpoTexto, corpoHtml) 
         '<soap:Body>' +
           '<SendMsgRequest xmlns="urn:zimbraMail">' +
             '<m>' +
+              '<f>' + ZIMBRA_EMAIL + '</f>' +
               '<e t="t" a="' + destinatario + '"/>' +
               '<su>' + assunto + '</su>' +
               '<mp ct="text/html">' +
